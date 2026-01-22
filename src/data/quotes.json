@@ -1,0 +1,64 @@
+{
+  "motivationalCatalysts": [
+    {
+      "id": 1,
+      "quote": "The secret of getting ahead is getting started.",
+      "author": "Mark Twain",
+      "category": "productivity"
+    },
+    {
+      "id": 2,
+      "quote": "Your time is limited. Don't waste it living someone else's life.",
+      "author": "Steve Jobs",
+      "category": "focus"
+    },
+    {
+      "id": 3,
+      "quote": "The way to get started is to quit talking and begin doing.",
+      "author": "Walt Disney",
+      "category": "action"
+    },
+    {
+      "id": 4,
+      "quote": "Focus on being productive instead of busy.",
+      "author": "Tim Ferriss",
+      "category": "productivity"
+    },
+    {
+      "id": 5,
+      "quote": "It's not about having time, it's about making time.",
+      "author": "Unknown",
+      "category": "time"
+    },
+    {
+      "id": 6,
+      "quote": "Small daily improvements are the key to staggering long-term results.",
+      "author": "Robin Sharma",
+      "category": "consistency"
+    },
+    {
+      "id": 7,
+      "quote": "The only way to do great work is to love what you do.",
+      "author": "Steve Jobs",
+      "category": "motivation"
+    },
+    {
+      "id": 8,
+      "quote": "Success is the sum of small efforts repeated day in and day out.",
+      "author": "Robert Collier",
+      "category": "consistency"
+    },
+    {
+      "id": 9,
+      "quote": "Don't count the days, make the days count.",
+      "author": "Muhammad Ali",
+      "category": "motivation"
+    },
+    {
+      "id": 10,
+      "quote": "Discipline is choosing between what you want now and what you want most.",
+      "author": "Abraham Lincoln",
+      "category": "discipline"
+    }
+  ]
+}
