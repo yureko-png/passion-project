@@ -109,7 +109,7 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={addTask}
-          className="btn-gold p-3"
+          className="btn-spirit p-3"
         >
           <Plus className="w-5 h-5" />
         </motion.button>

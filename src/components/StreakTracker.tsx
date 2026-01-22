@@ -38,7 +38,7 @@ const StreakTracker = ({ currentStreak, timeSaved, bestStreak }: StreakTrackerPr
           </motion.div>
         </div>
         <motion.p
-          className="text-3xl font-bold gold-gradient-text mb-1"
+          className="text-3xl font-bold spirit-gradient-text mb-1"
           key={currentStreak}
           initial={{ scale: 1.2 }}
           animate={{ scale: 1 }}

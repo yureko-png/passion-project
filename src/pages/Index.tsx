@@ -1,35 +1,77 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
-import LionMascot from '@/components/LionMascot';
+import Mascot, { MascotMood } from '@/components/Mascot';
 import MotivationalQuote from '@/components/MotivationalQuote';
 import StreakTracker from '@/components/StreakTracker';
-import PomodoroTimer from '@/components/PomodoroTimer';
+import PomodoroTimer, { PomodoroTimerRef } from '@/components/PomodoroTimer';
 import TaskManager from '@/components/TaskManager';
 import RecommendedActions from '@/components/RecommendedActions';
 
-const mascotMessages = [
-  "Ready to make today count? Let's focus on what matters most!",
-  "Remember, small consistent steps lead to massive results.",
-  "I believe in you! Let's tackle those goals together.",
-  "Every minute you invest in focus pays dividends in success.",
-  "You're building an unstoppable streak. Keep going!",
-  "Time to turn intentions into actions. What's your priority?",
-];
+const mascotMessages: Record<MascotMood, string[]> = {
+  encouraging: [
+    "You're doing amazing! Keep that momentum going! 💪",
+    "Every step forward counts. I'm proud of your progress!",
+    "You've got this! Let's make today count! ✨",
+  ],
+  neutral: [
+    "Ready to make today productive? I'm here to help!",
+    "What would you like to focus on today?",
+    "Let's plan your next productive session together.",
+  ],
+  firm: [
+    "Time to get back on track. You can do this!",
+    "Remember your goals. Let's refocus and push forward.",
+    "A small setback is just a setup for a comeback!",
+  ],
+  thinking: [
+    "Hmm, let me analyze your productivity patterns...",
+    "I'm thinking about the best strategy for you...",
+    "Processing... Finding the optimal approach!",
+  ],
+  surprised: [
+    "Wow! That was an incredible focus session! 🎉",
+    "Amazing progress! You've exceeded my expectations!",
+    "I didn't expect that level of dedication! Fantastic!",
+  ],
+  casual: [
+    "Hey there! Ready for another productive day?",
+    "Taking it easy? That's okay, rest is important too!",
+    "How are you feeling today? Let's check in together.",
+  ],
+};
 
 const Index = () => {
-  const [mascotMessage, setMascotMessage] = useState(mascotMessages[0]);
-  const [mascotMood, setMascotMood] = useState<'encouraging' | 'neutral' | 'firm'>('encouraging');
+  const [mascotMessage, setMascotMessage] = useState(mascotMessages.neutral[0]);
+  const [mascotMood, setMascotMood] = useState<MascotMood>('casual');
   const [streak, setStreak] = useState(7);
   const [timeSaved, setTimeSaved] = useState(342);
   const [bestStreak, setBestStreak] = useState(14);
+  const [isTyping, setIsTyping] = useState(false);
+  const timerRef = useRef<PomodoroTimerRef>(null);
+
+  const changeMascotState = (mood: MascotMood, customMessage?: string) => {
+    setIsTyping(true);
+    setTimeout(() => {
+      setMascotMood(mood);
+      const messages = mascotMessages[mood];
+      setMascotMessage(customMessage || messages[Math.floor(Math.random() * messages.length)]);
+      setIsTyping(false);
+    }, 800);
+  };
 
   useEffect(() => {
+    // Initial greeting
+    setTimeout(() => {
+      changeMascotState('casual', "Welcome back! Ready to crush your goals today? 🌟");
+    }, 1000);
+
     // Rotate mascot messages periodically
     const interval = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * mascotMessages.length);
-      setMascotMessage(mascotMessages[randomIndex]);
-    }, 20000);
+      const moods: MascotMood[] = ['encouraging', 'neutral', 'casual'];
+      const randomMood = moods[Math.floor(Math.random() * moods.length)];
+      changeMascotState(randomMood);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -37,17 +79,19 @@ const Index = () => {
   const handleTimerComplete = (mode: 'focus' | 'break') => {
     if (mode === 'focus') {
       setTimeSaved((prev) => prev + 25);
-      setMascotMessage("Excellent focus session! You've earned a break. Take a moment to recharge.");
-      setMascotMood('encouraging');
+      changeMascotState('surprised', "Excellent focus session! You've earned a well-deserved break! 🎉");
     } else {
-      setMascotMessage("Break's over! Ready to dive back into deep work?");
-      setMascotMood('neutral');
+      changeMascotState('encouraging', "Break's over! Ready to dive back into deep work? Let's go! 💪");
     }
   };
 
   const handleTaskComplete = () => {
-    setMascotMessage("Great job completing that task! You're making real progress today.");
-    setMascotMood('encouraging');
+    changeMascotState('encouraging', "Great job completing that task! You're making real progress today! ⭐");
+  };
+
+  const handleStartTimer = (duration: number, title: string) => {
+    timerRef.current?.startWithDuration(duration, title);
+    changeMascotState('thinking', `Starting ${duration}-minute timer for "${title}". Let's focus! 🎯`);
   };
 
   return (
@@ -55,48 +99,74 @@ const Index = () => {
       <Header />
       
       <main className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Motivational Quote Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-8"
-        >
-          <MotivationalQuote />
-        </motion.div>
-
-        {/* Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-8"
-        >
-          <StreakTracker currentStreak={streak} timeSaved={timeSaved} bestStreak={bestStreak} />
-        </motion.div>
-
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Timer & Tasks */}
-          <div className="lg:col-span-2 space-y-6">
-            <PomodoroTimer onComplete={handleTimerComplete} />
-            <TaskManager onTaskComplete={handleTaskComplete} />
-          </div>
-
-          {/* Right Column - Mascot & Recommendations */}
-          <div className="space-y-6">
-            {/* Mascot Section */}
+        {/* Main Content Grid - Reorganized */}
+        <div className="grid lg:grid-cols-12 gap-6">
+          
+          {/* Left Column - Main Features */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Motivational Quote Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="glass-card p-6"
+              transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
             >
-              <LionMascot message={mascotMessage} mood={mascotMood} />
+              <MotivationalQuote />
+            </motion.div>
+
+            {/* Stats Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <StreakTracker currentStreak={streak} timeSaved={timeSaved} bestStreak={bestStreak} />
+            </motion.div>
+
+            {/* Timer */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <PomodoroTimer ref={timerRef} onComplete={handleTimerComplete} />
+            </motion.div>
+
+            {/* Task Manager */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <TaskManager onTaskComplete={handleTaskComplete} />
+            </motion.div>
+          </div>
+
+          {/* Right Column - Mascot & Actions */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Mascot Section - Hero Size */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="glass-card p-6 lg:sticky lg:top-28"
+            >
+              <Mascot 
+                message={mascotMessage} 
+                mood={mascotMood} 
+                isTyping={isTyping}
+                size="hero"
+                showSpeechBubble={true}
+              />
             </motion.div>
 
             {/* Recommended Actions */}
-            <RecommendedActions />
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <RecommendedActions onStartTimer={handleStartTimer} />
+            </motion.div>
           </div>
         </div>
       </main>
