@@ -4,6 +4,12 @@ export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
+  safelist: [
+    'bg-mint', 'bg-mint/20', 'bg-mint/10', 'text-mint', 'border-mint', 'border-mint/30', 'border-mint/50',
+    'bg-lavender', 'bg-lavender/20', 'bg-lavender/10', 'text-lavender', 'border-lavender', 'border-lavender/30', 'border-lavender/50',
+    'bg-warm', 'bg-warm/20', 'bg-warm/10', 'text-warm', 'border-warm', 'border-warm/30', 'border-warm/50',
+    'bg-coral', 'bg-coral/20', 'bg-coral/10', 'text-coral', 'border-coral', 'border-coral/30', 'border-coral/50',
+  ],
   theme: {
     container: {
       center: true,
