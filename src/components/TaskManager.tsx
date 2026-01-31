@@ -10,11 +10,9 @@ import {
   ChevronRight,
   Calendar,
   Clock,
-  MessageSquare,
-  Flag,
-  MoreHorizontal,
+  Zap,
 } from 'lucide-react';
-
+import AddTaskSheet, { NewTaskData } from './AddTaskSheet';
 interface Subtask {
   id: string;
   title: string;
@@ -48,6 +46,13 @@ const priorityBadges = {
   high: 'bg-destructive/20 text-destructive',
   medium: 'bg-primary/20 text-primary',
   low: 'bg-muted text-muted-foreground',
+};
+
+const difficultyBadges = {
+  easy: 'bg-mint/20 text-mint',
+  medium: 'bg-primary/20 text-primary',
+  hard: 'bg-warm/20 text-warm',
+  expert: 'bg-destructive/20 text-destructive',
 };
 
 const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
@@ -93,6 +98,25 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
   const [newTask, setNewTask] = useState('');
   const [expandedTasks, setExpandedTasks] = useState<string[]>(['1']);
   const [newSubtask, setNewSubtask] = useState<{ taskId: string; title: string } | null>(null);
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+
+  const handleAddTask = (taskData: NewTaskData) => {
+    const task: Task = {
+      id: Date.now().toString(),
+      title: taskData.title,
+      description: taskData.description,
+      completed: false,
+      priority: taskData.priority,
+      dueDate: taskData.dueDate,
+      timeEstimate: taskData.timeEstimate,
+      subtasks: taskData.subtasks,
+      tags: taskData.tags,
+    };
+    setTasks([task, ...tasks]);
+    if (taskData.subtasks.length > 0) {
+      setExpandedTasks([...expandedTasks, task.id]);
+    }
+  };
 
   const addTask = () => {
     if (!newTask.trim()) return;
@@ -225,18 +249,26 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addTask()}
-          placeholder="Add a new task..."
+          placeholder="Quick add task (or click + for more options)..."
           className="flex-1 px-4 py-3 rounded-xl bg-secondary/50 text-foreground placeholder:text-muted-foreground text-sm border border-transparent focus:border-primary/50 focus:outline-none transition-colors"
         />
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={addTask}
+          onClick={() => setIsAddSheetOpen(true)}
           className="btn-spirit p-3"
+          title="Add task with options"
         >
           <Plus className="w-5 h-5" />
         </motion.button>
       </div>
+
+      {/* Add Task Sheet */}
+      <AddTaskSheet
+        open={isAddSheetOpen}
+        onOpenChange={setIsAddSheetOpen}
+        onSave={handleAddTask}
+      />
 
       {/* Task List */}
       <Reorder.Group axis="y" values={tasks} onReorder={setTasks} className="space-y-2">
@@ -305,6 +337,12 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${priorityBadges[task.priority]}`}>
                         {task.priority}
                       </span>
+                      {(task as any).difficulty && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${difficultyBadges[(task as any).difficulty as keyof typeof difficultyBadges]}`}>
+                          <Zap className="w-2.5 h-2.5" />
+                          {(task as any).difficulty}
+                        </span>
+                      )}
                     </div>
 
                     {/* Meta Info */}
