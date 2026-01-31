@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { motion, Reorder, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, Plus, MoreHorizontal, Calendar, Flag, MessageSquare, Paperclip, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutGrid, Plus, MoreHorizontal, Calendar, MessageSquare, Paperclip, Clock, Zap } from 'lucide-react';
+import AddTaskSheet, { NewTaskData } from './AddTaskSheet';
 
 interface KanbanTask {
   id: string;
   title: string;
   description?: string;
   priority: 'high' | 'medium' | 'low';
+  difficulty?: 'easy' | 'medium' | 'hard' | 'expert';
   dueDate?: string;
   tags: string[];
   comments: number;
   attachments: number;
   timeEstimate?: number;
+  subtasks?: { id: string; title: string; completed: boolean }[];
 }
 
 interface Column {
@@ -21,16 +24,17 @@ interface Column {
   tasks: KanbanTask[];
 }
 
-const priorityColors = {
-  high: 'bg-destructive/20 text-destructive border-destructive/30',
-  medium: 'bg-primary/20 text-primary border-primary/30',
-  low: 'bg-secondary text-muted-foreground border-border',
-};
-
 const priorityIcons = {
   high: '🔴',
   medium: '🟡',
   low: '🟢',
+};
+
+const difficultyColors = {
+  easy: 'text-mint',
+  medium: 'text-primary',
+  hard: 'text-warm',
+  expert: 'text-destructive',
 };
 
 const KanbanBoard = () => {
@@ -133,6 +137,8 @@ const KanbanBoard = () => {
 
   const [draggedTask, setDraggedTask] = useState<KanbanTask | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [addingToColumn, setAddingToColumn] = useState<string | null>(null);
 
   const handleDragStart = (task: KanbanTask) => {
     setDraggedTask(task);
@@ -164,6 +170,33 @@ const KanbanBoard = () => {
     setDragOverColumn(null);
   };
 
+  const handleOpenAddTask = (columnId?: string) => {
+    setAddingToColumn(columnId || 'todo');
+    setIsAddTaskOpen(true);
+  };
+
+  const handleAddTask = (taskData: NewTaskData) => {
+    const newTask: KanbanTask = {
+      id: Date.now().toString(),
+      title: taskData.title,
+      description: taskData.description || undefined,
+      priority: taskData.priority,
+      difficulty: taskData.difficulty,
+      dueDate: taskData.dueDate || undefined,
+      tags: taskData.tags,
+      comments: 0,
+      attachments: 0,
+      timeEstimate: taskData.timeEstimate,
+      subtasks: taskData.subtasks,
+    };
+
+    setColumns((prev) =>
+      prev.map((col) =>
+        col.id === addingToColumn ? { ...col, tasks: [...col.tasks, newTask] } : col
+      )
+    );
+  };
+
   const totalTasks = columns.reduce((acc, col) => acc + col.tasks.length, 0);
   const completedTasks = columns.find((c) => c.id === 'done')?.tasks.length || 0;
 
@@ -191,6 +224,7 @@ const KanbanBoard = () => {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          onClick={() => handleOpenAddTask()}
           className="btn-glass px-3 py-1.5 text-xs"
         >
           <Plus className="w-3.5 h-3.5 mr-1 inline" />
@@ -219,9 +253,17 @@ const KanbanBoard = () => {
                   {column.tasks.length}
                 </span>
               </div>
-              <button className="p-1 rounded hover:bg-background/30 transition-colors">
-                <MoreHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleOpenAddTask(column.id)}
+                  className="p-1 rounded hover:bg-background/30 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button className="p-1 rounded hover:bg-background/30 transition-colors">
+                  <MoreHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2 min-h-[100px]">
@@ -243,9 +285,14 @@ const KanbanBoard = () => {
                       draggedTask?.id === task.id ? 'opacity-50' : ''
                     }`}
                   >
-                    {/* Priority & Tags */}
+                    {/* Priority & Difficulty & Tags */}
                     <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                       <span className="text-xs">{priorityIcons[task.priority]}</span>
+                      {task.difficulty && (
+                        <span className={`text-[10px] ${difficultyColors[task.difficulty]}`}>
+                          <Zap className="w-3 h-3 inline" />
+                        </span>
+                      )}
                       {task.tags.slice(0, 2).map((tag) => (
                         <span
                           key={tag}
@@ -264,6 +311,16 @@ const KanbanBoard = () => {
                       <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                         {task.description}
                       </p>
+                    )}
+
+                    {/* Subtasks indicator */}
+                    {task.subtasks && task.subtasks.length > 0 && (
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-2">
+                        <span className="w-3 h-3 rounded border border-current flex items-center justify-center">
+                          {task.subtasks.filter(s => s.completed).length}
+                        </span>
+                        <span>/ {task.subtasks.length} subtasks</span>
+                      </div>
                     )}
 
                     {/* Meta */}
@@ -300,6 +357,14 @@ const KanbanBoard = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Add Task Sheet */}
+      <AddTaskSheet
+        open={isAddTaskOpen}
+        onOpenChange={setIsAddTaskOpen}
+        onSave={handleAddTask}
+        columnTitle={columns.find((c) => c.id === addingToColumn)?.title}
+      />
     </motion.div>
   );
 };

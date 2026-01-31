@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, RotateCcw, Coffee, Target, Settings, Sparkles } from 'lucide-react';
+import { Play, Pause, RotateCcw, Coffee, Target, Settings, Sparkles, Volume2, VolumeX } from 'lucide-react';
+import timerCompleteSound from '@/assets/timer-complete.mp3';
 
 type TimerMode = 'focus' | 'break';
 
@@ -23,6 +24,27 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
     const [showSettings, setShowSettings] = useState(false);
     const [completedPomodoros, setCompletedPomodoros] = useState(0);
     const [currentLabel, setCurrentLabel] = useState<string>('');
+    const [soundEnabled, setSoundEnabled] = useState(true);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Initialize audio
+    useEffect(() => {
+      audioRef.current = new Audio(timerCompleteSound);
+      audioRef.current.volume = 0.7;
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+      };
+    }, []);
+
+    const playSound = useCallback(() => {
+      if (soundEnabled && audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      }
+    }, [soundEnabled]);
 
     const totalTime = mode === 'focus' ? focusDuration * 60 : breakDuration * 60;
     const progress = ((totalTime - timeLeft) / totalTime) * 100;
@@ -68,6 +90,7 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
           setTimeLeft((prev) => prev - 1);
         }, 1000);
       } else if (timeLeft === 0) {
+        playSound();
         onComplete?.(mode);
         if (mode === 'focus') {
           setCompletedPomodoros((prev) => prev + 1);
@@ -78,7 +101,7 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
       }
 
       return () => clearInterval(interval);
-    }, [isRunning, timeLeft, mode, onComplete, handleModeSwitch]);
+    }, [isRunning, timeLeft, mode, onComplete, handleModeSwitch, playSound]);
 
     return (
       <motion.div
@@ -108,13 +131,22 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50">
               <Sparkles className="w-3.5 h-3.5 text-warm" />
               <span className="text-xs font-semibold text-foreground">
                 {completedPomodoros} sessions
               </span>
             </div>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-2.5 rounded-xl transition-colors ${soundEnabled ? 'bg-primary/20 text-primary' : 'hover:bg-secondary/80 text-muted-foreground'}`}
+              title={soundEnabled ? 'Sound on' : 'Sound off'}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </motion.button>
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
