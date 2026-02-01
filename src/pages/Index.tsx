@@ -21,7 +21,9 @@ import {
   Calendar,
   BarChart3,
   Home,
+  Sparkles,
 } from 'lucide-react';
+import ModomoroMode from '@/components/ModomoroMode';
 
 const mascotMessages: Record<MascotMood, string[]> = {
   encouraging: [
@@ -76,6 +78,7 @@ const Index = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('home');
   const [isCommandBarOpen, setIsCommandBarOpen] = useState(false);
+  const [isModomoroOpen, setIsModomoroOpen] = useState(false);
   const timerRef = useRef<PomodoroTimerRef>(null);
 
   const changeMascotState = (mood: MascotMood, customMessage?: string) => {
@@ -205,6 +208,9 @@ const Index = () => {
     <div className="min-h-screen pb-8">
       <Header />
 
+      {/* Modomoro Mode */}
+      <ModomoroMode isOpen={isModomoroOpen} onClose={() => setIsModomoroOpen(false)} />
+
       {/* Command Bar */}
       <CommandBar
         isOpen={isCommandBarOpen}
@@ -233,6 +239,17 @@ const Index = () => {
                 <span className="hidden sm:inline">{tab.label}</span>
               </motion.button>
             ))}
+
+            {/* Modomoro Mode Button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsModomoroOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-primary to-accent text-primary-foreground font-medium text-sm shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-shadow"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">Modomoro</span>
+            </motion.button>
 
             {/* Command Bar Trigger */}
             <button
