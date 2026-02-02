@@ -13,24 +13,7 @@ import {
   Zap,
 } from 'lucide-react';
 import AddTaskSheet, { NewTaskData } from './AddTaskSheet';
-interface Subtask {
-  id: string;
-  title: string;
-  completed: boolean;
-}
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  completed: boolean;
-  priority: 'high' | 'medium' | 'low';
-  dueDate?: string;
-  timeEstimate?: number;
-  subtasks: Subtask[];
-  notes?: string;
-  tags: string[];
-}
+import { useTasksStore, Task } from '@/hooks/useTasksStore';
 
 interface TaskManagerProps {
   onTaskComplete?: (task: Task) => void;
@@ -56,45 +39,7 @@ const difficultyBadges = {
 };
 
 const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Complete project proposal',
-      description: 'Write and submit the Q1 project proposal document',
-      completed: false,
-      priority: 'high',
-      dueDate: '2026-01-30',
-      timeEstimate: 60,
-      subtasks: [
-        { id: '1-1', title: 'Draft outline', completed: true },
-        { id: '1-2', title: 'Write introduction', completed: true },
-        { id: '1-3', title: 'Add budget section', completed: false },
-        { id: '1-4', title: 'Review and finalize', completed: false },
-      ],
-      tags: ['work', 'urgent'],
-    },
-    {
-      id: '2',
-      title: 'Review documentation',
-      completed: false,
-      priority: 'medium',
-      dueDate: '2026-02-01',
-      timeEstimate: 30,
-      subtasks: [
-        { id: '2-1', title: 'Check API docs', completed: false },
-        { id: '2-2', title: 'Update README', completed: false },
-      ],
-      tags: ['docs'],
-    },
-    {
-      id: '3',
-      title: 'Send follow-up emails',
-      completed: true,
-      priority: 'low',
-      subtasks: [],
-      tags: ['communication'],
-    },
-  ]);
+  const { tasks, setTasks, addTask: addTaskToStore, deleteTask, toggleTask, toggleSubtask, addSubtask, deleteSubtask } = useTasksStore();
   const [newTask, setNewTask] = useState('');
   const [expandedTasks, setExpandedTasks] = useState<string[]>(['1']);
   const [newSubtask, setNewSubtask] = useState<{ taskId: string; title: string } | null>(null);
@@ -112,7 +57,7 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
       subtasks: taskData.subtasks,
       tags: taskData.tags,
     };
-    setTasks([task, ...tasks]);
+    addTaskToStore(task);
     if (taskData.subtasks.length > 0) {
       setExpandedTasks([...expandedTasks, task.id]);
     }
@@ -128,74 +73,34 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
       subtasks: [],
       tags: [],
     };
-    setTasks([task, ...tasks]);
+    addTaskToStore(task);
     setNewTask('');
   };
 
-  const toggleTask = (id: string) => {
-    setTasks(
-      tasks.map((task) => {
-        if (task.id === id) {
-          const updatedTask = { ...task, completed: !task.completed };
-          if (updatedTask.completed) {
-            onTaskComplete?.(updatedTask);
-          }
-          return updatedTask;
-        }
-        return task;
-      })
-    );
+  const handleToggleTask = (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (task && !task.completed) {
+      onTaskComplete?.({ ...task, completed: true });
+    }
+    toggleTask(id);
   };
 
-  const toggleSubtask = (taskId: string, subtaskId: string) => {
-    setTasks(
-      tasks.map((task) => {
-        if (task.id === taskId) {
-          const updatedSubtasks = task.subtasks.map((st) =>
-            st.id === subtaskId ? { ...st, completed: !st.completed } : st
-          );
-          return { ...task, subtasks: updatedSubtasks };
-        }
-        return task;
-      })
-    );
+  const handleToggleSubtask = (taskId: string, subtaskId: string) => {
+    toggleSubtask(taskId, subtaskId);
   };
 
-  const addSubtask = (taskId: string, title: string) => {
+  const handleAddSubtask = (taskId: string, title: string) => {
     if (!title.trim()) return;
-    setTasks(
-      tasks.map((task) => {
-        if (task.id === taskId) {
-          return {
-            ...task,
-            subtasks: [
-              ...task.subtasks,
-              { id: `${taskId}-${Date.now()}`, title, completed: false },
-            ],
-          };
-        }
-        return task;
-      })
-    );
+    addSubtask(taskId, title);
     setNewSubtask(null);
   };
 
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+  const handleDeleteTask = (id: string) => {
+    deleteTask(id);
   };
 
-  const deleteSubtask = (taskId: string, subtaskId: string) => {
-    setTasks(
-      tasks.map((task) => {
-        if (task.id === taskId) {
-          return {
-            ...task,
-            subtasks: task.subtasks.filter((st) => st.id !== subtaskId),
-          };
-        }
-        return task;
-      })
-    );
+  const handleDeleteSubtask = (taskId: string, subtaskId: string) => {
+    deleteSubtask(taskId, subtaskId);
   };
 
   const toggleExpand = (id: string) => {
@@ -314,7 +219,7 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => toggleTask(task.id)}
+                    onClick={() => handleToggleTask(task.id)}
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                       task.completed
                         ? 'bg-primary border-primary'
@@ -337,10 +242,10 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${priorityBadges[task.priority]}`}>
                         {task.priority}
                       </span>
-                      {(task as any).difficulty && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${difficultyBadges[(task as any).difficulty as keyof typeof difficultyBadges]}`}>
+                      {task.difficulty && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${difficultyBadges[task.difficulty]}`}>
                           <Zap className="w-2.5 h-2.5" />
-                          {(task as any).difficulty}
+                          {task.difficulty}
                         </span>
                       )}
                     </div>
@@ -387,7 +292,7 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() => handleDeleteTask(task.id)}
                     className="p-1 rounded-lg hover:bg-destructive/20 transition-colors flex-shrink-0"
                   >
                     <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
@@ -414,7 +319,7 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
-                              onClick={() => toggleSubtask(task.id, subtask.id)}
+                              onClick={() => handleToggleSubtask(task.id, subtask.id)}
                               className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                                 subtask.completed
                                   ? 'bg-primary/80 border-primary/80'
@@ -435,7 +340,7 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
                               {subtask.title}
                             </span>
                             <button
-                              onClick={() => deleteSubtask(task.id, subtask.id)}
+                              onClick={() => handleDeleteSubtask(task.id, subtask.id)}
                               className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/20 transition-all"
                             >
                               <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
@@ -455,14 +360,14 @@ const TaskManager = ({ onTaskComplete }: TaskManagerProps) => {
                               }
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
-                                  addSubtask(task.id, newSubtask.title);
+                                  handleAddSubtask(task.id, newSubtask.title);
                                 } else if (e.key === 'Escape') {
                                   setNewSubtask(null);
                                 }
                               }}
                               onBlur={() => {
                                 if (newSubtask.title.trim()) {
-                                  addSubtask(task.id, newSubtask.title);
+                                  handleAddSubtask(task.id, newSubtask.title);
                                 } else {
                                   setNewSubtask(null);
                                 }

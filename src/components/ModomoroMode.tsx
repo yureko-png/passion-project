@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -19,28 +19,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Calendar,
   Eye,
   EyeOff,
 } from 'lucide-react';
 import timerCompleteSound from '@/assets/timer-complete.mp3';
+import { useTasksStore, Task } from '@/hooks/useTasksStore';
+import { useNotesStore, Note } from '@/hooks/useNotesStore';
 
 interface ModomoroModeProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-interface TodoItem {
-  id: string;
-  text: string;
-  completed: boolean;
-  dueDate?: string;
-}
-
-interface NoteItem {
-  id: string;
-  title: string;
-  content: string;
 }
 
 type BackgroundType = 'image' | 'video';
@@ -57,6 +45,10 @@ const DEFAULT_BACKGROUNDS: BackgroundOption[] = [
 ];
 
 const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
+  // Shared stores
+  const { tasks, addTask, toggleTask, deleteTask } = useTasksStore();
+  const { notes, addNote, updateNote, deleteNote } = useNotesStore();
+
   // Timer state
   const [isRunning, setIsRunning] = useState(false);
   const [workDuration, setWorkDuration] = useState(25);
@@ -83,19 +75,9 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
   const currentBg = backgrounds[currentBgIndex] || DEFAULT_BACKGROUNDS[0];
 
-  // Todo state
-  const [todos, setTodos] = useState<TodoItem[]>(() => {
-    const saved = localStorage.getItem('modomoro-todos');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Local form state
   const [newTodoText, setNewTodoText] = useState('');
-
-  // Notes state
-  const [notes, setNotes] = useState<NoteItem[]>(() => {
-    const saved = localStorage.getItem('modomoro-notes');
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [noteContent, setNoteContent] = useState('');
 
   // Refs
@@ -129,16 +111,6 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
     const customBgs = backgrounds.filter(bg => !DEFAULT_BACKGROUNDS.find(d => d.id === bg.id));
     localStorage.setItem('modomoro-backgrounds', JSON.stringify(customBgs));
   }, [backgrounds]);
-
-  // Save todos
-  useEffect(() => {
-    localStorage.setItem('modomoro-todos', JSON.stringify(todos));
-  }, [todos]);
-
-  // Save notes
-  useEffect(() => {
-    localStorage.setItem('modomoro-notes', JSON.stringify(notes));
-  }, [notes]);
 
   // Timer logic
   useEffect(() => {
@@ -242,53 +214,50 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
     }
   };
 
-  // Todo functions
-  const addTodo = () => {
+  // Todo functions - now using shared store
+  const handleAddTodo = () => {
     if (!newTodoText.trim()) return;
-    setTodos((prev) => [
-      ...prev,
-      { id: `todo-${Date.now()}`, text: newTodoText, completed: false },
-    ]);
+    const task: Task = {
+      id: Date.now().toString(),
+      title: newTodoText,
+      completed: false,
+      priority: 'medium',
+      subtasks: [],
+      tags: ['modomoro'],
+    };
+    addTask(task);
     setNewTodoText('');
   };
 
-  const toggleTodo = (id: string) => {
-    setTodos((prev) =>
-      prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
+  const handleToggleTodo = (id: string) => {
+    toggleTask(id);
   };
 
-  const deleteTodo = (id: string) => {
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+  const handleDeleteTodo = (id: string) => {
+    deleteTask(id);
   };
 
-  // Notes functions
-  const addNote = () => {
-    const newNote: NoteItem = {
-      id: `note-${Date.now()}`,
+  // Notes functions - now using shared store
+  const handleAddNote = () => {
+    const newNote = addNote({
       title: 'New page',
       content: '',
-    };
-    setNotes((prev) => [...prev, newNote]);
+      color: 'default',
+      pinned: false,
+    });
     setSelectedNote(newNote);
     setNoteContent('');
   };
 
-  const updateNoteContent = (content: string) => {
+  const handleUpdateNoteContent = (content: string) => {
     setNoteContent(content);
     if (selectedNote) {
-      setNotes((prev) =>
-        prev.map((n) =>
-          n.id === selectedNote.id ? { ...n, content } : n
-        )
-      );
+      updateNote(selectedNote.id, { content });
     }
   };
 
-  const deleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
+  const handleDeleteNote = (id: string) => {
+    deleteNote(id);
     if (selectedNote?.id === id) {
       setSelectedNote(null);
       setNoteContent('');
@@ -300,6 +269,10 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
   const circumference = 2 * Math.PI * 70;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
+
+  // Get incomplete tasks for display
+  const incompleteTasks = tasks.filter(t => !t.completed).slice(0, 10);
+  const completedCount = tasks.filter(t => t.completed).length;
 
   if (!isOpen) return null;
 
@@ -432,26 +405,28 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                       </div>
                     </div>
 
-                    {/* Controls */}
-                    <div className="flex items-center justify-center gap-2 mt-3">
+                    {/* Timer Controls - Tidied up */}
+                    <div className="flex items-center justify-center gap-3 mt-4">
                       <button
                         onClick={handleReset}
-                        className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                        className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                        title="Reset timer"
                       >
                         <RotateCcw className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => setIsRunning(!isRunning)}
-                        className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+                        className="w-14 h-14 rounded-full bg-primary hover:bg-primary/80 flex items-center justify-center text-white transition-colors shadow-lg"
                       >
-                        {isRunning ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                        {isRunning ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-0.5" />}
                       </button>
                       <button
                         onClick={() => {
                           setIsBreak(!isBreak);
                           setTimeLeft(isBreak ? workDuration * 60 : breakDuration * 60);
                         }}
-                        className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                        className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                        title="Switch mode"
                       >
                         <Clock className="w-5 h-5" />
                       </button>
@@ -460,63 +435,79 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                 </div>
               </div>
 
-              {/* Right Side Buttons */}
-              <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-3">
+              {/* Right Side Buttons - Grouped and tidied */}
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-2 bg-black/30 backdrop-blur-sm rounded-2xl p-2 border border-white/10">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowTodoPanel(!showTodoPanel)}
-                  className={`p-3 rounded-full backdrop-blur-sm border transition-colors ${
-                    showTodoPanel ? 'bg-white/30 border-white/40' : 'bg-black/40 border-white/10 hover:bg-white/20'
+                  onClick={() => {
+                    setShowTodoPanel(!showTodoPanel);
+                    setShowNotesPanel(false);
+                    setShowSettings(false);
+                  }}
+                  className={`p-3 rounded-xl transition-colors ${
+                    showTodoPanel ? 'bg-primary text-white' : 'hover:bg-white/10 text-white/80'
                   }`}
+                  title="To-Do List"
                 >
-                  <ListTodo className="w-5 h-5 text-white" />
+                  <ListTodo className="w-5 h-5" />
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowNotesPanel(!showNotesPanel)}
-                  className={`p-3 rounded-full backdrop-blur-sm border transition-colors ${
-                    showNotesPanel ? 'bg-white/30 border-white/40' : 'bg-black/40 border-white/10 hover:bg-white/20'
+                  onClick={() => {
+                    setShowNotesPanel(!showNotesPanel);
+                    setShowTodoPanel(false);
+                    setShowSettings(false);
+                  }}
+                  className={`p-3 rounded-xl transition-colors ${
+                    showNotesPanel ? 'bg-primary text-white' : 'hover:bg-white/10 text-white/80'
                   }`}
+                  title="Notes"
                 >
-                  <StickyNote className="w-5 h-5 text-white" />
+                  <StickyNote className="w-5 h-5" />
                 </motion.button>
+                <div className="w-full h-px bg-white/10 my-1" />
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowSettings(!showSettings)}
-                  className={`p-3 rounded-full backdrop-blur-sm border transition-colors ${
-                    showSettings ? 'bg-white/30 border-white/40' : 'bg-black/40 border-white/10 hover:bg-white/20'
+                  onClick={() => {
+                    setShowSettings(!showSettings);
+                    setShowTodoPanel(false);
+                    setShowNotesPanel(false);
+                  }}
+                  className={`p-3 rounded-xl transition-colors ${
+                    showSettings ? 'bg-primary text-white' : 'hover:bg-white/10 text-white/80'
                   }`}
+                  title="Settings"
                 >
-                  <Settings className="w-5 h-5 text-white" />
+                  <Settings className="w-5 h-5" />
                 </motion.button>
               </div>
 
-              {/* Bottom Controls */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4">
+              {/* Bottom Controls - Simplified */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
                 {/* Background Navigation */}
-                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10">
+                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-4 py-2.5 border border-white/10">
                   <button
                     onClick={() => setCurrentBgIndex((prev) => (prev - 1 + backgrounds.length) % backgrounds.length)}
-                    className="p-1 text-white/60 hover:text-white"
+                    className="p-1 text-white/60 hover:text-white transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <div className="flex items-center gap-2 min-w-[120px] justify-center">
+                  <div className="flex items-center gap-2 min-w-[100px] justify-center">
                     {currentBg.type === 'video' ? (
                       <Video className="w-4 h-4 text-white/60" />
                     ) : (
                       <ImageIcon className="w-4 h-4 text-white/60" />
                     )}
-                    <span className="text-sm text-white truncate max-w-[100px]">{currentBg.name}</span>
+                    <span className="text-sm text-white truncate max-w-[80px]">{currentBg.name}</span>
                   </div>
                   <button
                     onClick={() => setCurrentBgIndex((prev) => (prev + 1) % backgrounds.length)}
-                    className="p-1 text-white/60 hover:text-white"
+                    className="p-1 text-white/60 hover:text-white transition-colors"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -524,14 +515,11 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                 <button
                   onClick={() => setSoundEnabled(!soundEnabled)}
                   className={`p-3 rounded-full backdrop-blur-sm border transition-colors ${
-                    soundEnabled ? 'bg-white/20 border-white/30' : 'bg-black/40 border-white/10'
+                    soundEnabled ? 'bg-white/20 border-white/30 text-white' : 'bg-black/40 border-white/10 text-white/60'
                   }`}
+                  title={soundEnabled ? 'Sound on' : 'Sound off'}
                 >
-                  {soundEnabled ? (
-                    <Volume2 className="w-5 h-5 text-white" />
-                  ) : (
-                    <VolumeX className="w-5 h-5 text-white/60" />
-                  )}
+                  {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                 </button>
               </div>
 
@@ -540,13 +528,12 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="absolute top-6 right-6 p-3 rounded-full bg-black/40 backdrop-blur-sm text-white/80 hover:text-white transition-colors z-50"
-                style={{ right: 'auto', left: 'unset', marginTop: '100px' }}
+                className="absolute top-6 left-6 mt-24 p-3 rounded-full bg-black/40 backdrop-blur-sm text-white/80 hover:text-white transition-colors z-50"
               >
                 <X className="w-5 h-5" />
               </motion.button>
 
-              {/* Todo Panel */}
+              {/* Todo Panel - Synced with TaskManager */}
               <AnimatePresence>
                 {showTodoPanel && (
                   <motion.div
@@ -563,61 +550,61 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                         </button>
                       </div>
                       <p className="text-xs text-white/50 mt-1">
-                        {todos.filter(t => t.completed).length}/{todos.length} completed
+                        {completedCount}/{tasks.length} completed • Synced with dashboard
                       </p>
                     </div>
-                    <div className="p-4 max-h-[300px] overflow-y-auto">
+                    <div className="p-4 max-h-[350px] overflow-y-auto">
                       {/* Add Todo */}
                       <div className="flex items-center gap-2 mb-4">
                         <input
                           type="text"
                           value={newTodoText}
                           onChange={(e) => setNewTodoText(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && addTodo()}
-                          placeholder="Enter Task"
-                          className="flex-1 px-3 py-2 bg-white/10 rounded-lg text-white text-sm placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/30"
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddTodo()}
+                          placeholder="Add new task..."
+                          className="flex-1 px-3 py-2 bg-white/10 rounded-lg text-white text-sm placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-primary/50"
                         />
                         <button
-                          onClick={addTodo}
-                          className="p-2 bg-primary/80 hover:bg-primary rounded-lg text-white"
+                          onClick={handleAddTodo}
+                          className="p-2 bg-primary hover:bg-primary/80 rounded-lg text-white transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
                       </div>
                       {/* Todo Items */}
                       <div className="space-y-2">
-                        {todos.map((todo) => (
+                        {incompleteTasks.map((task) => (
                           <div
-                            key={todo.id}
-                            className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 group"
+                            key={task.id}
+                            className="flex items-center gap-2 p-2.5 rounded-lg bg-white/5 hover:bg-white/10 group transition-colors"
                           >
                             <button
-                              onClick={() => toggleTodo(todo.id)}
+                              onClick={() => handleToggleTodo(task.id)}
                               className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                                todo.completed
+                                task.completed
                                   ? 'bg-primary border-primary'
                                   : 'border-white/30 hover:border-white/50'
                               }`}
                             >
-                              {todo.completed && <Check className="w-3 h-3 text-white" />}
+                              {task.completed && <Check className="w-3 h-3 text-white" />}
                             </button>
                             <span
                               className={`flex-1 text-sm ${
-                                todo.completed ? 'text-white/40 line-through' : 'text-white'
+                                task.completed ? 'text-white/40 line-through' : 'text-white'
                               }`}
                             >
-                              {todo.text}
+                              {task.title}
                             </span>
                             <button
-                              onClick={() => deleteTodo(todo.id)}
+                              onClick={() => handleDeleteTodo(task.id)}
                               className="opacity-0 group-hover:opacity-100 p-1 text-white/40 hover:text-red-400 transition-all"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         ))}
-                        {todos.length === 0 && (
-                          <p className="text-center text-white/40 text-sm py-4">No tasks yet</p>
+                        {incompleteTasks.length === 0 && (
+                          <p className="text-center text-white/40 text-sm py-6">All tasks completed! 🎉</p>
                         )}
                       </div>
                     </div>
@@ -625,29 +612,32 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                 )}
               </AnimatePresence>
 
-              {/* Notes Panel */}
+              {/* Notes Panel - Synced with QuickNotes */}
               <AnimatePresence>
                 {showNotesPanel && (
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    className="absolute top-1/2 -translate-y-1/2 left-[340px] flex gap-2"
+                    className="absolute top-1/2 -translate-y-1/2 left-6 flex gap-2"
                   >
                     {/* Notes List */}
-                    <div className="w-48 bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+                    <div className="w-52 bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
                       <div className="p-3 border-b border-white/10">
-                        <h3 className="text-white font-semibold text-sm">Notes</h3>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-white font-semibold text-sm">Notes</h3>
+                          <span className="text-xs text-white/50">Synced</span>
+                        </div>
                       </div>
                       <div className="p-2">
                         <button
-                          onClick={addNote}
-                          className="w-full flex items-center gap-2 px-3 py-2 bg-primary/60 hover:bg-primary rounded-lg text-white text-sm mb-2"
+                          onClick={handleAddNote}
+                          className="w-full flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/80 rounded-lg text-white text-sm mb-2 transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                           New Page
                         </button>
-                        <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                        <div className="space-y-1 max-h-[250px] overflow-y-auto">
                           {notes.map((note) => (
                             <div
                               key={note.id}
@@ -655,7 +645,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                                 setSelectedNote(note);
                                 setNoteContent(note.content);
                               }}
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer group ${
+                              className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer group transition-colors ${
                                 selectedNote?.id === note.id
                                   ? 'bg-white/20'
                                   : 'hover:bg-white/10'
@@ -665,9 +655,9 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  deleteNote(note.id);
+                                  handleDeleteNote(note.id);
                                 }}
-                                className="opacity-0 group-hover:opacity-100 text-white/40 hover:text-red-400"
+                                className="opacity-0 group-hover:opacity-100 text-white/40 hover:text-red-400 transition-all"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </button>
@@ -679,19 +669,15 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
 
                     {/* Note Editor */}
                     {selectedNote && (
-                      <div className="w-64 bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+                      <div className="w-72 bg-black/80 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
                         <div className="p-3 border-b border-white/10">
                           <input
                             type="text"
                             value={selectedNote.title}
                             onChange={(e) => {
                               const newTitle = e.target.value;
+                              updateNote(selectedNote.id, { title: newTitle });
                               setSelectedNote({ ...selectedNote, title: newTitle });
-                              setNotes((prev) =>
-                                prev.map((n) =>
-                                  n.id === selectedNote.id ? { ...n, title: newTitle } : n
-                                )
-                              );
                             }}
                             className="w-full bg-transparent text-white font-semibold focus:outline-none"
                           />
@@ -699,9 +685,9 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                         <div className="p-3">
                           <textarea
                             value={noteContent}
-                            onChange={(e) => updateNoteContent(e.target.value)}
-                            placeholder="Enter text here..."
-                            className="w-full h-48 bg-transparent text-white/80 text-sm resize-none focus:outline-none placeholder:text-white/30"
+                            onChange={(e) => handleUpdateNoteContent(e.target.value)}
+                            placeholder="Write your note here..."
+                            className="w-full h-56 bg-transparent text-white/80 text-sm resize-none focus:outline-none placeholder:text-white/30"
                           />
                         </div>
                       </div>
@@ -736,7 +722,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                             onChange={(e) => setWorkDuration(Number(e.target.value))}
                             min={1}
                             max={120}
-                            className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white/30"
+                            className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
                           />
                         </div>
                         <div>
@@ -747,7 +733,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                             onChange={(e) => setBreakDuration(Number(e.target.value))}
                             min={1}
                             max={60}
-                            className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white/30"
+                            className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
                           />
                         </div>
                       </div>
@@ -759,7 +745,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                           onChange={(e) => setLoopCount(Number(e.target.value))}
                           min={1}
                           max={10}
-                          className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white/30"
+                          className="w-full px-3 py-2 bg-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
                         />
                       </div>
 
@@ -770,7 +756,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                           {backgrounds.map((bg, index) => (
                             <div
                               key={bg.id}
-                              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer group ${
+                              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer group transition-colors ${
                                 currentBgIndex === index ? 'bg-white/20' : 'hover:bg-white/10'
                               }`}
                               onClick={() => setCurrentBgIndex(index)}
