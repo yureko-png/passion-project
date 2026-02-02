@@ -23,16 +23,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  color: 'default' | 'coral' | 'mint' | 'lavender' | 'warm';
-  pinned: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { useNotesStore, Note } from '@/hooks/useNotesStore';
 
 const noteColors = {
   default: 'bg-card border-border',
@@ -51,35 +42,7 @@ const colorOptions: { value: Note['color']; label: string; bg: string }[] = [
 ];
 
 const QuickNotes = () => {
-  const [notes, setNotes] = useState<Note[]>([
-    {
-      id: '1',
-      title: 'Project Ideas',
-      content: '- AI-powered task prioritization\n- Voice commands for timer\n- Team collaboration features',
-      color: 'lavender',
-      pinned: true,
-      createdAt: new Date(2026, 0, 28),
-      updatedAt: new Date(2026, 0, 29),
-    },
-    {
-      id: '2',
-      title: 'Meeting Notes',
-      content: 'Discussed Q1 goals and timeline. Follow up with design team by Friday.',
-      color: 'mint',
-      pinned: false,
-      createdAt: new Date(2026, 0, 29),
-      updatedAt: new Date(2026, 0, 29),
-    },
-    {
-      id: '3',
-      title: 'Quick Reminders',
-      content: '• Update documentation\n• Review PR #42\n• Send weekly report',
-      color: 'warm',
-      pinned: false,
-      createdAt: new Date(2026, 0, 29),
-      updatedAt: new Date(2026, 0, 29),
-    },
-  ]);
+  const { notes, addNote, updateNote, deleteNote, togglePin } = useNotesStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -91,14 +54,14 @@ const QuickNotes = () => {
   const [newColor, setNewColor] = useState<Note['color']>('default');
   const [newPinned, setNewPinned] = useState(false);
 
-  const togglePin = (id: string) => {
-    setNotes(
-      notes.map((note) => (note.id === id ? { ...note, pinned: !note.pinned } : note))
-    );
+  const handleTogglePin = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    togglePin(id);
   };
 
-  const deleteNote = (id: string) => {
-    setNotes(notes.filter((note) => note.id !== id));
+  const handleDeleteNote = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteNote(id);
   };
 
   const openNewNote = () => {
@@ -123,31 +86,19 @@ const QuickNotes = () => {
     if (!newTitle.trim() && !newContent.trim()) return;
 
     if (editingNote) {
-      setNotes(
-        notes.map((note) =>
-          note.id === editingNote.id
-            ? {
-                ...note,
-                title: newTitle || 'Untitled',
-                content: newContent,
-                color: newColor,
-                pinned: newPinned,
-                updatedAt: new Date(),
-              }
-            : note
-        )
-      );
-    } else {
-      const newNote: Note = {
-        id: Date.now().toString(),
+      updateNote(editingNote.id, {
         title: newTitle || 'Untitled',
         content: newContent,
         color: newColor,
         pinned: newPinned,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setNotes([newNote, ...notes]);
+      });
+    } else {
+      addNote({
+        title: newTitle || 'Untitled',
+        content: newContent,
+        color: newColor,
+        pinned: newPinned,
+      });
     }
 
     setIsSheetOpen(false);
