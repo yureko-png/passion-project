@@ -216,7 +216,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen pb-8">
-      <Header />
+      <Header activeView={activeView} onNavigate={handleNavigate} onOpenModomoro={() => setIsModomoroOpen(true)} />
 
       {/* Modomoro Mode */}
       <ModomoroMode isOpen={isModomoroOpen} onClose={() => setIsModomoroOpen(false)} />
