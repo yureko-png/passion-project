@@ -14,6 +14,7 @@ import Dashboard from '@/components/Dashboard';
 import CommandBar from '@/components/CommandBar';
 import RemindersWidget from '@/components/RemindersWidget';
 import QuickNotes from '@/components/QuickNotes';
+import TimeManagementMethods from '@/components/TimeManagementMethods';
 import {
   LayoutDashboard,
   Target,
@@ -191,11 +192,20 @@ const Index = () => {
               <PomodoroTimer ref={timerRef} onComplete={handleTimerComplete} />
             </motion.div>
 
-            {/* Task Manager */}
+            {/* Time Management Methods */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <TimeManagementMethods onStartTimer={handleStartTimer} />
+            </motion.div>
+
+            {/* Task Manager */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
               <TaskManager onTaskComplete={handleTaskComplete} />
             </motion.div>
