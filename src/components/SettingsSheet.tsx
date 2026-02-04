@@ -1,11 +1,13 @@
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, User, Bell, Clock, Target, Palette, Volume2, Shield, HelpCircle, 
-  Zap, Database, RefreshCw, Sparkles, Moon, Sun, Eye, EyeOff
+  Zap, Database, RefreshCw, Sparkles, Moon, Sun, Upload, Download, Play, Music
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { useSettingsStore } from '@/hooks/useSettingsStore';
+import { useSoundStore } from '@/hooks/useSoundStore';
 import { toast } from 'sonner';
 
 interface SettingsSheetProps {
@@ -15,6 +17,18 @@ interface SettingsSheetProps {
 
 const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
   const { settings, updateSettings, resetSettings } = useSettingsStore();
+  const { 
+    settings: soundSettings, 
+    updateSettings: updateSoundSettings, 
+    importSound, 
+    exportSound, 
+    clearSound, 
+    previewSound,
+    resetToDefaults: resetSoundDefaults 
+  } = useSoundStore();
+
+  const timerAudioInputRef = useRef<HTMLInputElement>(null);
+  const reminderAudioInputRef = useRef<HTMLInputElement>(null);
 
   const handleToggle = (key: string, value: boolean) => {
     updateSettings({ [key]: value });
@@ -31,7 +45,34 @@ const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 
   const handleReset = () => {
     resetSettings();
+    resetSoundDefaults();
     toast.success('Settings reset to defaults');
+  };
+
+  const handleTimerAudioImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        await importSound('timer', file);
+        toast.success(`Timer sound updated to "${file.name}"`);
+      } catch {
+        toast.error('Failed to import audio file');
+      }
+    }
+    e.target.value = '';
+  };
+
+  const handleReminderAudioImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        await importSound('reminder', file);
+        toast.success(`Reminder sound updated to "${file.name}"`);
+      } catch {
+        toast.error('Failed to import audio file');
+      }
+    }
+    e.target.value = '';
   };
 
   const settingsSections = [
@@ -50,7 +91,6 @@ const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
       color: 'from-coral to-coral/70',
       items: [
         { key: 'pushNotifications', label: 'Push Notifications', type: 'toggle', description: 'Get notified about important updates' },
-        { key: 'soundAlerts', label: 'Sound Alerts', type: 'toggle', description: 'Audio cues for timer events' },
         { key: 'breakReminders', label: 'Break Reminders', type: 'toggle', description: 'Gentle reminders to take breaks' },
         { key: 'streakNotifications', label: 'Streak Alerts', type: 'toggle', description: 'Celebrate your consistency' },
       ]
@@ -95,17 +135,6 @@ const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
         { key: 'darkMode', label: 'Dark Mode', type: 'toggle', description: 'Easy on the eyes', icon: settings.darkMode ? Moon : Sun },
         { key: 'reduceAnimations', label: 'Reduce Animations', type: 'toggle', description: 'Less motion for accessibility' },
         { key: 'compactMode', label: 'Compact Mode', type: 'toggle', description: 'Fit more content on screen' },
-      ]
-    },
-    {
-      title: 'Sound',
-      icon: Volume2,
-      color: 'from-primary to-lavender',
-      items: [
-        { key: 'volume', label: 'Master Volume', type: 'volume-slider', min: 0, max: 100 },
-        { key: 'timerCompleteSound', label: 'Timer Complete', type: 'toggle', description: 'Play sound when timer ends' },
-        { key: 'tickingSound', label: 'Ticking Sound', type: 'toggle', description: 'Ambient clock ticking' },
-        { key: 'backgroundAmbience', label: 'Background Ambience', type: 'toggle', description: 'Relaxing background sounds' },
       ]
     },
     {
@@ -266,28 +295,192 @@ const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
                               </span>
                             </div>
                           )}
-
-                          {item.type === 'volume-slider' && (
-                            <div className="flex items-center gap-3 w-40">
-                              <Slider
-                                value={[settings[item.key as keyof typeof settings] as number]}
-                                onValueChange={([val]) => handleNumberChange(item.key, val)}
-                                min={0}
-                                max={100}
-                                step={5}
-                                className="flex-1"
-                              />
-                              <span className="text-xs text-muted-foreground w-8 text-right">
-                                {settings[item.key as keyof typeof settings]}%
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </motion.div>
                     ))}
                   </div>
                 </motion.div>
               ))}
+
+              {/* Enhanced Sound Settings Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.4 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-lavender flex items-center justify-center">
+                    <Volume2 className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+                    Sound & Audio
+                  </h3>
+                </div>
+
+                <div className="space-y-3 ml-11">
+                  {/* Master Volume */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all">
+                    <div>
+                      <span className="text-sm font-medium text-foreground">Master Volume</span>
+                      <p className="text-xs text-muted-foreground">Controls all sounds</p>
+                    </div>
+                    <div className="flex items-center gap-3 w-40">
+                      <Slider
+                        value={[soundSettings.masterVolume]}
+                        onValueChange={([val]) => updateSoundSettings({ masterVolume: val })}
+                        min={0}
+                        max={100}
+                        step={5}
+                        className="flex-1"
+                      />
+                      <span className="text-xs text-muted-foreground w-8 text-right">
+                        {soundSettings.masterVolume}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Timer Sound Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all">
+                    <div>
+                      <span className="text-sm font-medium text-foreground">Timer Complete</span>
+                      <p className="text-xs text-muted-foreground">Sound when timer ends</p>
+                    </div>
+                    <Switch 
+                      checked={soundSettings.timerSoundEnabled}
+                      onCheckedChange={(checked) => updateSoundSettings({ timerSoundEnabled: checked })}
+                    />
+                  </div>
+
+                  {/* Reminder Sound Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all">
+                    <div>
+                      <span className="text-sm font-medium text-foreground">Reminder Alerts</span>
+                      <p className="text-xs text-muted-foreground">Sound for reminders</p>
+                    </div>
+                    <Switch 
+                      checked={soundSettings.reminderSoundEnabled}
+                      onCheckedChange={(checked) => updateSoundSettings({ reminderSoundEnabled: checked })}
+                    />
+                  </div>
+
+                  {/* Timer Sound Customization */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 to-lavender/5 border border-primary/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Music className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium text-foreground">Timer Sound</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-background mb-3">
+                      <Volume2 className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="text-sm flex-1 truncate text-foreground">
+                        {soundSettings.timerSoundName}
+                      </span>
+                      <button
+                        onClick={() => previewSound('timer')}
+                        className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                        title="Preview"
+                      >
+                        <Play className="w-4 h-4" />
+                      </button>
+                      {soundSettings.timerSoundData && (
+                        <>
+                          <button
+                            onClick={() => exportSound('timer')}
+                            className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                            title="Export"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              clearSound('timer');
+                              toast.success('Reset to default timer sound');
+                            }}
+                            className="p-1.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive"
+                            title="Reset to default"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={() => timerAudioInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Import Custom Timer Sound
+                    </button>
+                    <input
+                      ref={timerAudioInputRef}
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleTimerAudioImport}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {/* Reminder Sound Customization */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-warm/5 to-coral/5 border border-warm/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Music className="w-4 h-4 text-warm" />
+                      <span className="text-sm font-medium text-foreground">Reminder Sound</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-background mb-3">
+                      <Volume2 className="w-4 h-4 text-warm flex-shrink-0" />
+                      <span className="text-sm flex-1 truncate text-foreground">
+                        {soundSettings.reminderSoundName}
+                      </span>
+                      <button
+                        onClick={() => previewSound('reminder')}
+                        className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                        title="Preview"
+                      >
+                        <Play className="w-4 h-4" />
+                      </button>
+                      {soundSettings.reminderSoundData && (
+                        <>
+                          <button
+                            onClick={() => exportSound('reminder')}
+                            className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                            title="Export"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              clearSound('reminder');
+                              toast.success('Reset to default reminder sound');
+                            }}
+                            className="p-1.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive"
+                            title="Reset to default"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={() => reminderAudioInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-warm/10 text-warm text-sm font-medium hover:bg-warm/20 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Import Custom Reminder Sound
+                    </button>
+                    <input
+                      ref={reminderAudioInputRef}
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleReminderAudioImport}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              </motion.div>
 
               {/* Help & Support */}
               <motion.div

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, forwardRef, useImperativeHandle, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, RotateCcw, Coffee, Target, Settings, Sparkles, Volume2, VolumeX, Upload, Download, X } from 'lucide-react';
-import timerCompleteSound from '@/assets/timer-complete.mp3';
+import { Play, Pause, RotateCcw, Coffee, Target, Settings, Sparkles, Volume2, VolumeX, Upload, Download, X, Music } from 'lucide-react';
+import { useSoundStore } from '@/hooks/useSoundStore';
+import { toast } from 'sonner';
 
 type TimerMode = 'focus' | 'break';
 
@@ -24,89 +25,9 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
     const [showSettings, setShowSettings] = useState(false);
     const [completedPomodoros, setCompletedPomodoros] = useState(0);
     const [currentLabel, setCurrentLabel] = useState<string>('');
-    const [soundEnabled, setSoundEnabled] = useState(true);
-    const [customAudioUrl, setCustomAudioUrl] = useState<string | null>(null);
-    const [customAudioName, setCustomAudioName] = useState<string>('');
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    
+    const { settings, playSound, importSound, exportSound, clearSound, previewSound, updateSettings } = useSoundStore();
     const audioInputRef = useRef<HTMLInputElement>(null);
-
-    // Initialize audio
-    useEffect(() => {
-      // Check for saved custom audio
-      const savedAudioData = localStorage.getItem('timerAudioData');
-      const savedAudioName = localStorage.getItem('timerAudioName');
-      
-      if (savedAudioData) {
-        setCustomAudioUrl(savedAudioData);
-        setCustomAudioName(savedAudioName || 'Custom sound');
-        audioRef.current = new Audio(savedAudioData);
-      } else {
-        audioRef.current = new Audio(timerCompleteSound);
-      }
-      audioRef.current.volume = 0.7;
-      
-      return () => {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
-        }
-      };
-    }, []);
-
-    const handleAudioImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result as string;
-          setCustomAudioUrl(base64);
-          setCustomAudioName(file.name);
-          localStorage.setItem('timerAudioData', base64);
-          localStorage.setItem('timerAudioName', file.name);
-          
-          // Update audio reference
-          if (audioRef.current) {
-            audioRef.current.pause();
-          }
-          audioRef.current = new Audio(base64);
-          audioRef.current.volume = 0.7;
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-
-    const handleAudioExport = () => {
-      const audioData = localStorage.getItem('timerAudioData');
-      const audioName = localStorage.getItem('timerAudioName') || 'timer-sound.mp3';
-      
-      if (audioData) {
-        const link = document.createElement('a');
-        link.href = audioData;
-        link.download = audioName;
-        link.click();
-      }
-    };
-
-    const clearCustomAudio = () => {
-      setCustomAudioUrl(null);
-      setCustomAudioName('');
-      localStorage.removeItem('timerAudioData');
-      localStorage.removeItem('timerAudioName');
-      
-      // Reset to default
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      audioRef.current = new Audio(timerCompleteSound);
-      audioRef.current.volume = 0.7;
-    };
-
-    const playSound = useCallback(() => {
-      if (soundEnabled && audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(() => {});
-      }
-    }, [soundEnabled]);
 
     const totalTime = mode === 'focus' ? focusDuration * 60 : breakDuration * 60;
     const progress = ((totalTime - timeLeft) / totalTime) * 100;
@@ -144,6 +65,36 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
       setCurrentLabel('');
     };
 
+    const handleAudioImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        try {
+          await importSound('timer', file);
+          toast.success(`Timer sound updated to "${file.name}"`);
+        } catch (error) {
+          toast.error('Failed to import audio file');
+        }
+      }
+    };
+
+    const handleAudioExport = () => {
+      if (settings.timerSoundData) {
+        exportSound('timer');
+        toast.success('Timer sound exported');
+      } else {
+        toast.info('Using default sound - nothing to export');
+      }
+    };
+
+    const handleClearAudio = () => {
+      clearSound('timer');
+      toast.success('Reset to default timer sound');
+    };
+
+    const handlePreview = () => {
+      previewSound('timer');
+    };
+
     useEffect(() => {
       let interval: NodeJS.Timeout;
 
@@ -152,7 +103,7 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
           setTimeLeft((prev) => prev - 1);
         }, 1000);
       } else if (timeLeft === 0) {
-        playSound();
+        playSound('timer');
         onComplete?.(mode);
         if (mode === 'focus') {
           setCompletedPomodoros((prev) => prev + 1);
@@ -193,7 +144,7 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
               )}
             </div>
           </div>
-        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/50">
               <Sparkles className="w-3.5 h-3.5 text-warm" />
               <span className="text-xs font-semibold text-foreground">
@@ -203,11 +154,11 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2.5 rounded-xl transition-colors ${soundEnabled ? 'bg-primary/20 text-primary' : 'hover:bg-secondary/80 text-muted-foreground'}`}
-              title={soundEnabled ? 'Sound on' : 'Sound off'}
+              onClick={() => updateSettings({ timerSoundEnabled: !settings.timerSoundEnabled })}
+              className={`p-2.5 rounded-xl transition-colors ${settings.timerSoundEnabled ? 'bg-primary/20 text-primary' : 'hover:bg-secondary/80 text-muted-foreground'}`}
+              title={settings.timerSoundEnabled ? 'Sound on' : 'Sound off'}
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              {settings.timerSoundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
@@ -258,53 +209,50 @@ const PomodoroTimer = forwardRef<PomodoroTimerRef, PomodoroTimerProps>(
 
                 {/* Audio Import/Export */}
                 <div className="pt-3 border-t border-border/50">
-                  <label className="text-xs text-muted-foreground font-medium block mb-2">
-                    🔊 Timer Completion Sound
+                  <label className="text-xs text-muted-foreground font-medium block mb-2 flex items-center gap-2">
+                    <Music className="w-4 h-4" />
+                    Timer Completion Sound
                   </label>
                   
-                  {customAudioName ? (
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-background mb-2">
-                      <Volume2 className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="text-sm flex-1 truncate">{customAudioName}</span>
-                      <button
-                        onClick={handleAudioExport}
-                        className="p-1.5 rounded hover:bg-secondary transition-colors"
-                        title="Export audio"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={clearCustomAudio}
-                        className="p-1.5 rounded hover:bg-destructive/20 transition-colors"
-                        title="Use default sound"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Using default completion sound
-                    </p>
-                  )}
-                  
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-background mb-3">
+                    <Volume2 className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span className="text-sm flex-1 truncate">
+                      {settings.timerSoundName || 'Default'}
+                    </span>
                     <button
-                      onClick={() => audioInputRef.current?.click()}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-background border border-border text-sm hover:bg-secondary transition-colors"
+                      onClick={handlePreview}
+                      className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                      title="Preview sound"
                     >
-                      <Upload className="w-4 h-4" />
-                      Import Sound
+                      <Play className="w-4 h-4" />
                     </button>
-                    {customAudioUrl && (
-                      <button
-                        onClick={handleAudioExport}
-                        className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-background border border-border text-sm hover:bg-secondary transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        Export
-                      </button>
+                    {settings.timerSoundData && (
+                      <>
+                        <button
+                          onClick={handleAudioExport}
+                          className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                          title="Export audio"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleClearAudio}
+                          className="p-1.5 rounded hover:bg-destructive/20 transition-colors text-muted-foreground hover:text-destructive"
+                          title="Reset to default"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
                   </div>
+                  
+                  <button
+                    onClick={() => audioInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Import Custom Sound
+                  </button>
                   
                   <input
                     ref={audioInputRef}
