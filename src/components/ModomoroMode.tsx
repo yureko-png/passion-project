@@ -22,9 +22,9 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import timerCompleteSound from '@/assets/timer-complete.mp3';
 import { useTasksStore, Task } from '@/hooks/useTasksStore';
 import { useNotesStore, Note } from '@/hooks/useNotesStore';
+import { useSoundStore } from '@/hooks/useSoundStore';
 
 interface ModomoroModeProps {
   isOpen: boolean;
@@ -48,6 +48,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
   // Shared stores
   const { tasks, addTask, toggleTask, deleteTask } = useTasksStore();
   const { notes, addNote, updateNote, deleteNote } = useNotesStore();
+  const { settings, playSound, updateSettings } = useSoundStore();
 
   // Timer state
   const [isRunning, setIsRunning] = useState(false);
@@ -64,7 +65,6 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
   const [showTodoPanel, setShowTodoPanel] = useState(false);
   const [showNotesPanel, setShowNotesPanel] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [showUI, setShowUI] = useState(true);
 
   // Background state
@@ -81,21 +81,15 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
   const [noteContent, setNoteContent] = useState('');
 
   // Refs
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Initialize audio
+  // Load saved level
   useEffect(() => {
-    const savedAudio = localStorage.getItem('timerAudioData');
-    audioRef.current = new Audio(savedAudio || timerCompleteSound);
-    audioRef.current.volume = 0.7;
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
+    const savedLevel = localStorage.getItem('modomoro-level');
+    const savedFocusTime = localStorage.getItem('modomoro-focus-time');
+    if (savedLevel) setLevel(parseInt(savedLevel));
+    if (savedFocusTime) setTotalFocusTime(parseInt(savedFocusTime));
   }, []);
 
   // Load saved level
@@ -136,10 +130,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
         }
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
-      if (soundEnabled && audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play().catch(() => {});
-      }
+      playSound('timer');
 
       if (isBreak) {
         // End of break
@@ -162,7 +153,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
     }
 
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft, isBreak, workDuration, breakDuration, loopCount, currentLoop, soundEnabled]);
+  }, [isRunning, timeLeft, isBreak, workDuration, breakDuration, loopCount, currentLoop, playSound]);
 
   // Format time
   const formatTime = (seconds: number) => {
@@ -513,13 +504,13 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
 
                 {/* Sound Toggle */}
                 <button
-                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  onClick={() => updateSettings({ timerSoundEnabled: !settings.timerSoundEnabled })}
                   className={`p-3 rounded-full backdrop-blur-sm border transition-colors ${
-                    soundEnabled ? 'bg-white/20 border-white/30 text-white' : 'bg-black/40 border-white/10 text-white/60'
+                    settings.timerSoundEnabled ? 'bg-white/20 border-white/30 text-white' : 'bg-black/40 border-white/10 text-white/60'
                   }`}
-                  title={soundEnabled ? 'Sound on' : 'Sound off'}
+                  title={settings.timerSoundEnabled ? 'Sound on' : 'Sound off'}
                 >
-                  {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                  {settings.timerSoundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                 </button>
               </div>
 

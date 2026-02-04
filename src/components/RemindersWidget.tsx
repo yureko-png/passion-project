@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -12,6 +12,8 @@ import {
   Upload,
   Download,
   X,
+  Play,
+  Music,
 } from 'lucide-react';
 import {
   Sheet,
@@ -21,6 +23,8 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useSoundStore } from '@/hooks/useSoundStore';
+import { toast } from 'sonner';
 
 interface Reminder {
   id: string;
@@ -32,36 +36,45 @@ interface Reminder {
   completed: boolean;
 }
 
+const STORAGE_KEY = 'app-reminders';
+
+const loadReminders = (): Reminder[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveReminders = (reminders: Reminder[]) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
+};
+
 const RemindersWidget = () => {
-  const [reminders, setReminders] = useState<Reminder[]>([
-    {
-      id: '1',
-      title: 'Daily standup',
-      time: '09:00',
-      date: '2026-01-29',
-      repeat: 'daily',
-      sound: true,
-      completed: false,
-    },
-    {
-      id: '2',
-      title: 'Take a stretch break',
-      time: '14:00',
-      date: '2026-01-29',
-      repeat: 'daily',
-      sound: true,
-      completed: false,
-    },
-    {
-      id: '3',
-      title: 'Review weekly goals',
-      time: '17:00',
-      date: '2026-01-31',
-      repeat: 'weekly',
-      sound: false,
-      completed: true,
-    },
-  ]);
+  const [reminders, setReminders] = useState<Reminder[]>(() => {
+    const saved = loadReminders();
+    return saved.length > 0 ? saved : [
+      {
+        id: '1',
+        title: 'Daily standup',
+        time: '09:00',
+        date: new Date().toISOString().split('T')[0],
+        repeat: 'daily',
+        sound: true,
+        completed: false,
+      },
+      {
+        id: '2',
+        title: 'Take a stretch break',
+        time: '14:00',
+        date: new Date().toISOString().split('T')[0],
+        repeat: 'daily',
+        sound: true,
+        completed: false,
+      },
+    ];
+  });
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -70,10 +83,39 @@ const RemindersWidget = () => {
   const [newRepeat, setNewRepeat] = useState<Reminder['repeat']>('none');
   const [newSound, setNewSound] = useState(true);
   
-  // Audio state
-  const [customAudioUrl, setCustomAudioUrl] = useState<string | null>(null);
-  const [customAudioName, setCustomAudioName] = useState<string>('');
+  const { settings, playSound, importSound, exportSound, clearSound, previewSound, updateSettings } = useSoundStore();
   const audioInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist reminders
+  useEffect(() => {
+    saveReminders(reminders);
+  }, [reminders]);
+
+  // Check for due reminders
+  useEffect(() => {
+    const checkReminders = () => {
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5);
+      const currentDate = now.toISOString().split('T')[0];
+
+      reminders.forEach((reminder) => {
+        if (
+          !reminder.completed &&
+          reminder.sound &&
+          reminder.time === currentTime &&
+          (reminder.date === currentDate || reminder.repeat !== 'none')
+        ) {
+          playSound('reminder');
+          toast(`⏰ ${reminder.title}`, {
+            description: 'Reminder triggered!',
+          });
+        }
+      });
+    };
+
+    const interval = setInterval(checkReminders, 60000);
+    return () => clearInterval(interval);
+  }, [reminders, playSound]);
 
   const toggleComplete = (id: string) => {
     setReminders(
@@ -115,43 +157,37 @@ const RemindersWidget = () => {
 
     setReminders([reminder, ...reminders]);
     setIsSheetOpen(false);
+    toast.success('Reminder created!');
   };
 
-  const handleAudioImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setCustomAudioUrl(url);
-      setCustomAudioName(file.name);
-      localStorage.setItem('reminderAudioName', file.name);
-      
-      // Convert to base64 for persistence
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        localStorage.setItem('reminderAudioData', base64);
-      };
-      reader.readAsDataURL(file);
+      try {
+        await importSound('reminder', file);
+        toast.success(`Reminder sound updated to "${file.name}"`);
+      } catch {
+        toast.error('Failed to import audio file');
+      }
     }
   };
 
   const handleAudioExport = () => {
-    const audioData = localStorage.getItem('reminderAudioData');
-    const audioName = localStorage.getItem('reminderAudioName') || 'reminder-sound.mp3';
-    
-    if (audioData) {
-      const link = document.createElement('a');
-      link.href = audioData;
-      link.download = audioName;
-      link.click();
+    if (settings.reminderSoundData) {
+      exportSound('reminder');
+      toast.success('Reminder sound exported');
+    } else {
+      toast.info('Using default sound - nothing to export');
     }
   };
 
-  const clearCustomAudio = () => {
-    setCustomAudioUrl(null);
-    setCustomAudioName('');
-    localStorage.removeItem('reminderAudioData');
-    localStorage.removeItem('reminderAudioName');
+  const handleClearAudio = () => {
+    clearSound('reminder');
+    toast.success('Reset to default reminder sound');
+  };
+
+  const handlePreview = () => {
+    previewSound('reminder');
   };
 
   const activeReminders = reminders.filter((r) => !r.completed);
@@ -388,54 +424,51 @@ const RemindersWidget = () => {
             {/* Custom Audio Section */}
             <div className="p-4 rounded-xl bg-secondary/30 space-y-3">
               <label className="text-sm font-medium flex items-center gap-2">
-                🔊 Custom Notification Sound
+                <Music className="w-4 h-4" />
+                Custom Notification Sound
               </label>
               
-              {customAudioName ? (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-background">
-                  <span className="text-sm flex-1 truncate">{customAudioName}</span>
-                  <button
-                    onClick={handleAudioExport}
-                    className="p-1.5 rounded hover:bg-secondary transition-colors"
-                    title="Export audio"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={clearCustomAudio}
-                    className="p-1.5 rounded hover:bg-destructive/20 transition-colors"
-                    title="Remove audio"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Using default notification sound
-                </p>
-              )}
-              
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => audioInputRef.current?.click()}
-                  className="flex-1"
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-background">
+                <Volume2 className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-sm flex-1 truncate">
+                  {settings.reminderSoundName || 'Default'}
+                </span>
+                <button
+                  onClick={handlePreview}
+                  className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                  title="Preview sound"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Import Audio
-                </Button>
-                {customAudioUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAudioExport}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Export
-                  </Button>
+                  <Play className="w-4 h-4" />
+                </button>
+                {settings.reminderSoundData && (
+                  <>
+                    <button
+                      onClick={handleAudioExport}
+                      className="p-1.5 rounded hover:bg-secondary transition-colors"
+                      title="Export audio"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleClearAudio}
+                      className="p-1.5 rounded hover:bg-destructive/20 transition-colors"
+                      title="Remove audio"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
               </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => audioInputRef.current?.click()}
+                className="w-full"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import Custom Sound
+              </Button>
               
               <input
                 ref={audioInputRef}
