@@ -25,6 +25,10 @@ import {
 import { useTasksStore, Task } from '@/hooks/useTasksStore';
 import { useNotesStore, Note } from '@/hooks/useNotesStore';
 import { useSoundStore } from '@/hooks/useSoundStore';
+ import { getRandomAkoLine, AkoLine } from '@/data/akoConversations';
+ import { useAkoChat } from '@/hooks/useAkoChat';
+ import Mascot from './Mascot';
+ import type { MascotMood } from './Mascot';
 
 interface ModomoroModeProps {
   isOpen: boolean;
@@ -79,10 +83,31 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
   const [newTodoText, setNewTodoText] = useState('');
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [noteContent, setNoteContent] = useState('');
+ 
+   // Ako character state
+   const [akoLine, setAkoLine] = useState<AkoLine>(getRandomAkoLine('idle'));
+   const [showAkoPanel, setShowAkoPanel] = useState(false);
+   const { playVoice, voiceEnabled, toggleVoice, isPlayingVoice } = useAkoChat();
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+ 
+   // Ako message handler
+   const triggerAkoMessage = (context: AkoLine['context'], playAudio = true) => {
+     const line = getRandomAkoLine(context);
+     setAkoLine(line);
+     if (playAudio && voiceEnabled) {
+       playVoice(line.text);
+     }
+   };
+ 
+   // Trigger Ako greeting when opening Modomoro
+   useEffect(() => {
+     if (isOpen) {
+       triggerAkoMessage('idle', true);
+     }
+   }, [isOpen]);
 
   // Load saved level
   useEffect(() => {
@@ -131,6 +156,13 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
       }, 1000);
     } else if (timeLeft === 0 && isRunning) {
       playSound('timer');
+       
+       // Ako voice feedback
+       if (isBreak) {
+         triggerAkoMessage('break_end');
+       } else {
+         triggerAkoMessage('work_end');
+       }
 
       if (isBreak) {
         // End of break
@@ -155,6 +187,27 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
     return () => clearInterval(interval);
   }, [isRunning, timeLeft, isBreak, workDuration, breakDuration, loopCount, currentLoop, playSound]);
 
+   // Trigger work start message
+   const handleStartWork = () => {
+     setIsRunning(true);
+     if (!isBreak) {
+       triggerAkoMessage('work_start');
+     } else {
+       triggerAkoMessage('break_start');
+     }
+   };
+ 
+   // Progress messages during work
+   useEffect(() => {
+     if (isRunning && !isBreak && timeLeft > 0) {
+       const progressPoint = Math.floor((workDuration * 60 - timeLeft) / (workDuration * 60) * 100);
+       // Trigger at 50% progress
+       if (progressPoint === 50) {
+         triggerAkoMessage('work_progress', false);
+       }
+     }
+   }, [timeLeft, isRunning, isBreak, workDuration]);
+ 
   // Format time
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -406,7 +459,13 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                         <RotateCcw className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => setIsRunning(!isRunning)}
+                       onClick={() => {
+                         if (!isRunning) {
+                           handleStartWork();
+                         } else {
+                           setIsRunning(false);
+                         }
+                       }}
                         className="w-14 h-14 rounded-full bg-primary hover:bg-primary/80 flex items-center justify-center text-white transition-colors shadow-lg"
                       >
                         {isRunning ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 ml-0.5" />}
@@ -476,6 +535,22 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                 </motion.button>
               </div>
 
+               {/* Ako Character Panel */}
+               <div className="absolute bottom-24 left-6">
+                 <div 
+                   className="cursor-pointer"
+                   onClick={() => setShowAkoPanel(!showAkoPanel)}
+                 >
+                   <Mascot
+                     message={akoLine.text}
+                     mood={akoLine.mood as MascotMood}
+                     size="medium"
+                     showSpeechBubble={showAkoPanel}
+                     isTyping={isPlayingVoice}
+                   />
+                 </div>
+               </div>
+ 
               {/* Bottom Controls - Simplified */}
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
                 {/* Background Navigation */}

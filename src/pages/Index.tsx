@@ -25,6 +25,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
+ import AkoChat from '@/components/AkoChat';
 
 const mascotMessages: Record<MascotMood, string[]> = {
   encouraging: [
@@ -276,6 +277,12 @@ const Index = () => {
       </div>
 
       <main className="container mx-auto px-4 py-6 max-w-7xl">
+       {/* Ako AI Chat */}
+       <AkoChat
+         timerState="idle"
+         completedTasks={0}
+       />
+ 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-12 gap-6">
           {/* Left Column - Main Features */}
