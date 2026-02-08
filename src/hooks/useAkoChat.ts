@@ -5,13 +5,19 @@
    content: string;
  }
  
- interface ChatContext {
-   timerState?: 'working' | 'break' | 'idle';
-   timeRemaining?: string;
-   currentTask?: string;
-   completedTasks?: number;
-   focusLevel?: number;
- }
+interface ChatContext {
+  timerState?: 'working' | 'break' | 'idle';
+  timeRemaining?: string;
+  currentTask?: string;
+  completedTasks?: number;
+  focusLevel?: number;
+  level?: number;
+  streak?: number;
+  focusMinutes?: number;
+  achievement?: string;
+  levelUp?: number;
+  questProgress?: { current: number; target: number; title: string };
+}
  
  const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ako-chat`;
  const VOICE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ako-voice`;
