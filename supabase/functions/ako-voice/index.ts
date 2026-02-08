@@ -6,8 +6,8 @@
    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
  };
  
- // Ako's ElevenLabs voice ID
- const AKO_VOICE_ID = "XdflFrQO8wbGpWMNZHFr";
+// Ako's ElevenLabs voice ID - Using Sarah (free tier compatible)
+const AKO_VOICE_ID = "EXAVITQu4vr4xnSDxMaL";
  
  serve(async (req) => {
    if (req.method === "OPTIONS") {
