@@ -21,14 +21,21 @@ import {
   Clock,
   Eye,
   EyeOff,
+  Music,
+  Trophy,
+  Target,
 } from 'lucide-react';
 import { useTasksStore, Task } from '@/hooks/useTasksStore';
 import { useNotesStore, Note } from '@/hooks/useNotesStore';
 import { useSoundStore } from '@/hooks/useSoundStore';
- import { getRandomAkoLine, AkoLine } from '@/data/akoConversations';
- import { useAkoChat } from '@/hooks/useAkoChat';
- import Mascot from './Mascot';
- import type { MascotMood } from './Mascot';
+import { getRandomAkoLine, AkoLine } from '@/data/akoConversations';
+import { useAkoChat } from '@/hooks/useAkoChat';
+import { useGamificationStore } from '@/hooks/useGamificationStore';
+import { useAmbientSound } from '@/hooks/useAmbientSound';
+import Mascot from './Mascot';
+import AmbientSoundPanel from './AmbientSoundPanel';
+import DailyQuestCard from './DailyQuestCard';
+import type { MascotMood } from './Mascot';
 
 interface ModomoroModeProps {
   isOpen: boolean;
@@ -87,7 +94,11 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
    // Ako character state
    const [akoLine, setAkoLine] = useState<AkoLine>(getRandomAkoLine('idle'));
    const [showAkoPanel, setShowAkoPanel] = useState(false);
+   const [showAmbientPanel, setShowAmbientPanel] = useState(false);
+   const [showQuestPanel, setShowQuestPanel] = useState(false);
    const { playVoice, voiceEnabled, toggleVoice, isPlayingVoice } = useAkoChat();
+   const { addFocusTime, addTaskCompleted, stats, dailyQuest, questProgress } = useGamificationStore();
+   const { activeSound, isPlaying: isAmbientPlaying, toggleSound, sounds } = useAmbientSound();
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -178,7 +189,8 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
           setTimeLeft(workDuration * 60);
         }
       } else {
-        // End of work session
+        // End of work session - track focus time for gamification
+        addFocusTime(workDuration);
         setIsBreak(true);
         setTimeLeft(breakDuration * 60);
       }
@@ -551,6 +563,75 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                  </div>
                </div>
  
+               {/* Quest & Ambient Panels Toggle */}
+               <div className="absolute bottom-24 right-6 flex flex-col gap-2">
+                 <motion.button
+                   whileHover={{ scale: 1.05 }}
+                   whileTap={{ scale: 0.95 }}
+                   onClick={() => {
+                     setShowQuestPanel(!showQuestPanel);
+                     setShowAmbientPanel(false);
+                   }}
+                   className={`p-3 rounded-xl backdrop-blur-sm transition-colors ${
+                     showQuestPanel ? 'bg-primary text-white' : 'bg-black/40 hover:bg-white/10 text-white/80'
+                   }`}
+                   title="Daily Quest"
+                 >
+                   <Target className="w-5 h-5" />
+                 </motion.button>
+                 <motion.button
+                   whileHover={{ scale: 1.05 }}
+                   whileTap={{ scale: 0.95 }}
+                   onClick={() => {
+                     setShowAmbientPanel(!showAmbientPanel);
+                     setShowQuestPanel(false);
+                   }}
+                   className={`p-3 rounded-xl backdrop-blur-sm transition-colors ${
+                     showAmbientPanel ? 'bg-primary text-white' : isAmbientPlaying ? 'bg-primary/50 text-white' : 'bg-black/40 hover:bg-white/10 text-white/80'
+                   }`}
+                   title="Ambient Sounds"
+                 >
+                   <Music className="w-5 h-5" />
+                 </motion.button>
+                 <motion.button
+                   whileHover={{ scale: 1.05 }}
+                   whileTap={{ scale: 0.95 }}
+                   onClick={() => window.open('#achievements', '_self')}
+                   className="p-3 rounded-xl backdrop-blur-sm bg-black/40 hover:bg-white/10 text-white/80 transition-colors"
+                   title="Achievements"
+                 >
+                   <Trophy className="w-5 h-5" />
+                 </motion.button>
+               </div>
+
+               {/* Quest Panel */}
+               <AnimatePresence>
+                 {showQuestPanel && (
+                   <motion.div
+                     initial={{ opacity: 0, x: 20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     exit={{ opacity: 0, x: 20 }}
+                     className="absolute bottom-24 right-24 w-80"
+                   >
+                     <DailyQuestCard />
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+
+               {/* Ambient Sound Panel */}
+               <AnimatePresence>
+                 {showAmbientPanel && (
+                   <motion.div
+                     initial={{ opacity: 0, x: 20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     exit={{ opacity: 0, x: 20 }}
+                     className="absolute bottom-24 right-24 w-72 bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 p-4"
+                   >
+                     <AmbientSoundPanel />
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+
               {/* Bottom Controls - Simplified */}
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
                 {/* Background Navigation */}
@@ -576,6 +657,14 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* Ambient Sound Quick Toggle */}
+                {activeSound && (
+                  <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm rounded-full px-4 py-2.5 border border-white/10">
+                    <span className="text-sm">{activeSound.icon}</span>
+                    <span className="text-xs text-white/80">{activeSound.name}</span>
+                  </div>
+                )}
 
                 {/* Sound Toggle */}
                 <button
