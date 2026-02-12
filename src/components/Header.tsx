@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-import { Menu, Bell, Settings, Moon, Sun } from 'lucide-react';
-import mascotDefault from '@/assets/mascot-default.webp';
+import { Menu, Bell, Settings, Moon, Sun, Sparkles } from 'lucide-react';
 import SettingsSheet from './SettingsSheet';
 import SidebarMenu from './SidebarMenu';
 import { useState } from 'react';
@@ -39,20 +38,16 @@ const Header = ({ activeView = 'home', onNavigate, onOpenModomoro }: HeaderProps
             <Menu className="w-5 h-5 text-foreground" />
           </motion.button>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <motion.div
-              whileHover={{ rotate: [0, -5, 5, 0] }}
-              transition={{ duration: 0.5 }}
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
             >
-              <img 
-                src={mascotDefault} 
-                alt="Time to Changing" 
-                className="w-12 h-12 object-contain" 
-              />
+              <Sparkles className="w-5 h-5 text-primary" />
             </motion.div>
             <div>
-              <h1 className="text-lg font-bold spirit-gradient-text">Time to Changing</h1>
-              <p className="text-xs text-muted-foreground font-medium">Command Center</p>
+              <h1 className="text-lg font-bold spirit-gradient-text tracking-tight">Now is your time</h1>
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">Command Center</p>
             </div>
           </div>
         </div>

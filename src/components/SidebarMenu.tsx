@@ -108,7 +108,7 @@ const SidebarMenu = ({
                     />
                   </motion.div>
                   <div>
-                    <h2 className="text-lg font-bold spirit-gradient-text">Time to Changing</h2>
+                    <h2 className="text-lg font-bold spirit-gradient-text">Now is your time</h2>
                     <p className="text-xs text-muted-foreground">Your Productivity Partner</p>
                   </div>
                 </div>
