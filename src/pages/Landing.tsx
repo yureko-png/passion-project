@@ -50,7 +50,7 @@ const features = [
   },
   {
     icon: Sparkles,
-    title: 'Modomoro Mode',
+    title: 'Pomodoro Mode',
     description: 'Immersive focus experience with ambient visuals and sound.',
     color: 'from-indigo-500 to-blue-400',
   },

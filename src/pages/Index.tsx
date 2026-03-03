@@ -15,6 +15,8 @@ import CommandBar from '@/components/CommandBar';
 import RemindersWidget from '@/components/RemindersWidget';
 import QuickNotes from '@/components/QuickNotes';
 import TimeManagementMethods from '@/components/TimeManagementMethods';
+import AppBlocker from '@/components/AppBlocker';
+import { useTasksStore } from '@/hooks/useTasksStore';
 import {
   LayoutDashboard,
   Target,
@@ -23,9 +25,10 @@ import {
   BarChart3,
   Home,
   Sparkles,
+  Shield,
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
- import AkoChat from '@/components/AkoChat';
+import AkoChat from '@/components/AkoChat';
 
 const mascotMessages: Record<MascotMood, string[]> = {
   encouraging: [
@@ -60,11 +63,12 @@ const mascotMessages: Record<MascotMood, string[]> = {
   ],
 };
 
-type ViewType = 'home' | 'tasks' | 'kanban' | 'calendar' | 'goals' | 'dashboard';
+type ViewType = 'home' | 'tasks' | 'kanban' | 'calendar' | 'goals' | 'dashboard' | 'focus';
 
 const viewTabs = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'tasks', label: 'Tasks', icon: LayoutDashboard },
+  { id: 'focus', label: 'Focus', icon: Shield },
   { id: 'kanban', label: 'Board', icon: LayoutGrid },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'goals', label: 'Goals', icon: Target },
@@ -72,6 +76,7 @@ const viewTabs = [
 ];
 
 const Index = () => {
+  const { tasks } = useTasksStore();
   const [mascotMessage, setMascotMessage] = useState(mascotMessages.neutral[0]);
   const [mascotMood, setMascotMood] = useState<MascotMood>('casual');
   const [streak, setStreak] = useState(7);
@@ -81,6 +86,7 @@ const Index = () => {
   const [activeView, setActiveView] = useState<ViewType>('home');
   const [isCommandBarOpen, setIsCommandBarOpen] = useState(false);
   const [isModomoroOpen, setIsModomoroOpen] = useState(false);
+  const [isPomodoroOpen, setIsPomodoroOpen] = useState(false);
   const timerRef = useRef<PomodoroTimerRef>(null);
 
   const changeMascotState = (mood: MascotMood, customMessage?: string) => {
@@ -144,7 +150,7 @@ const Index = () => {
   }, []);
 
   const handleNavigate = useCallback((view: string) => {
-    const validViews: ViewType[] = ['home', 'tasks', 'kanban', 'calendar', 'goals', 'dashboard'];
+    const validViews: ViewType[] = ['home', 'tasks', 'kanban', 'calendar', 'goals', 'dashboard', 'focus'];
     if (validViews.includes(view as ViewType)) {
       setActiveView(view as ViewType);
     }
@@ -152,6 +158,8 @@ const Index = () => {
 
   const renderActiveView = () => {
     switch (activeView) {
+      case 'focus':
+        return <AppBlocker tasks={tasks.filter(t => !t.completed).map(t => ({ id: t.id, title: t.title, completed: t.completed, priority: t.priority }))} />;
       case 'kanban':
         return <KanbanBoard />;
       case 'calendar':
@@ -217,10 +225,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen pb-8">
-      <Header activeView={activeView} onNavigate={handleNavigate} onOpenModomoro={() => setIsModomoroOpen(true)} />
+      <Header activeView={activeView} onNavigate={handleNavigate} onOpenModomoro={() => setIsPomodoroOpen(true)} />
 
-      {/* Modomoro Mode */}
-      <ModomoroMode isOpen={isModomoroOpen} onClose={() => setIsModomoroOpen(false)} />
+      {/* Pomodoro Mode */}
+      <ModomoroMode isOpen={isPomodoroOpen} onClose={() => setIsPomodoroOpen(false)} />
 
       {/* Command Bar */}
       <CommandBar
@@ -251,15 +259,15 @@ const Index = () => {
               </motion.button>
             ))}
 
-            {/* Modomoro Mode Button */}
+            {/* Pomodoro Mode Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setIsModomoroOpen(true)}
+              onClick={() => setIsPomodoroOpen(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-primary to-accent text-primary-foreground font-medium text-sm shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-shadow"
             >
               <Sparkles className="w-4 h-4" />
-              <span className="hidden sm:inline">Modomoro</span>
+              <span className="hidden sm:inline">Pomodoro</span>
             </motion.button>
 
             {/* Command Bar Trigger */}
