@@ -24,6 +24,7 @@ import {
   Music,
   Trophy,
   Target,
+  Disc3,
 } from 'lucide-react';
 import { useTasksStore, Task } from '@/hooks/useTasksStore';
 import { useNotesStore, Note } from '@/hooks/useNotesStore';
@@ -35,6 +36,7 @@ import { useAmbientSound } from '@/hooks/useAmbientSound';
 import Mascot from './Mascot';
 import AmbientSoundPanel from './AmbientSoundPanel';
 import DailyQuestCard from './DailyQuestCard';
+import MusicPlayer from './MusicPlayer';
 import type { MascotMood } from './Mascot';
 
 interface ModomoroModeProps {
@@ -96,6 +98,7 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
    const [showAkoPanel, setShowAkoPanel] = useState(false);
    const [showAmbientPanel, setShowAmbientPanel] = useState(false);
    const [showQuestPanel, setShowQuestPanel] = useState(false);
+   const [showMusicPanel, setShowMusicPanel] = useState(false);
    const { playVoice, voiceEnabled, toggleVoice, isPlayingVoice } = useAkoChat();
    const { addFocusTime, addTaskCompleted, stats, dailyQuest, questProgress } = useGamificationStore();
    const { activeSound, isPlaying: isAmbientPlaying, toggleSound, sounds } = useAmbientSound();
@@ -593,6 +596,22 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                  >
                    <Music className="w-5 h-5" />
                  </motion.button>
+                 {/* Music Player Button */}
+                 <motion.button
+                   whileHover={{ scale: 1.05 }}
+                   whileTap={{ scale: 0.95 }}
+                   onClick={() => {
+                     setShowMusicPanel(!showMusicPanel);
+                     setShowQuestPanel(false);
+                     setShowAmbientPanel(false);
+                   }}
+                   className={`p-3 rounded-xl backdrop-blur-sm transition-colors ${
+                     showMusicPanel ? 'bg-primary text-white' : 'bg-black/40 hover:bg-white/10 text-white/80'
+                   }`}
+                   title="Music Player"
+                 >
+                   <Disc3 className="w-5 h-5" />
+                 </motion.button>
                  <motion.button
                    whileHover={{ scale: 1.05 }}
                    whileTap={{ scale: 0.95 }}
@@ -628,6 +647,20 @@ const ModomoroMode = ({ isOpen, onClose }: ModomoroModeProps) => {
                      className="absolute bottom-24 right-24 w-72 bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 p-4"
                    >
                      <AmbientSoundPanel />
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+
+               {/* Music Player Panel */}
+               <AnimatePresence>
+                 {showMusicPanel && (
+                   <motion.div
+                     initial={{ opacity: 0, x: 20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     exit={{ opacity: 0, x: 20 }}
+                     className="absolute bottom-24 right-24 w-80"
+                   >
+                     <MusicPlayer />
                    </motion.div>
                  )}
                </AnimatePresence>

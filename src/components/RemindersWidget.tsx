@@ -91,6 +91,16 @@ const RemindersWidget = () => {
     saveReminders(reminders);
   }, [reminders]);
 
+  // Track which reminders have already fired to prevent duplicates
+  const firedRemindersRef = useRef<Set<string>>(new Set());
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Check for due reminders
   useEffect(() => {
     const checkReminders = () => {
@@ -99,21 +109,33 @@ const RemindersWidget = () => {
       const currentDate = now.toISOString().split('T')[0];
 
       reminders.forEach((reminder) => {
+        const fireKey = `${reminder.id}-${currentDate}-${currentTime}`;
+        
         if (
           !reminder.completed &&
           reminder.sound &&
           reminder.time === currentTime &&
-          (reminder.date === currentDate || reminder.repeat !== 'none')
+          (reminder.date === currentDate || reminder.repeat !== 'none') &&
+          !firedRemindersRef.current.has(fireKey)
         ) {
+          firedRemindersRef.current.add(fireKey);
           playSound('reminder');
+          
+          // Browser notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`⏰ ${reminder.title}`, { body: 'Reminder triggered!' });
+          }
+          
           toast(`⏰ ${reminder.title}`, {
             description: 'Reminder triggered!',
+            duration: 10000,
           });
         }
       });
     };
 
-    const interval = setInterval(checkReminders, 60000);
+    checkReminders();
+    const interval = setInterval(checkReminders, 5000);
     return () => clearInterval(interval);
   }, [reminders, playSound]);
 

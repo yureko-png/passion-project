@@ -38,7 +38,7 @@ const menuSections = [
   {
     title: 'Special Features',
     items: [
-      { id: 'modomoro', label: 'Modomoro Mode', icon: Sparkles, description: 'Immersive focus experience', badge: 'New', special: true },
+      { id: 'modomoro', label: 'Pomodoro Mode', icon: Sparkles, description: 'Immersive focus experience', badge: 'New', special: true },
       { id: 'streak', label: 'Streak Tracker', icon: Zap, description: 'Build consistency' },
       { id: 'achievements', label: 'Achievements', icon: Trophy, description: 'Your productivity wins' },
     ]
