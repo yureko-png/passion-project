@@ -16,7 +16,9 @@ import RemindersWidget from '@/components/RemindersWidget';
 import QuickNotes from '@/components/QuickNotes';
 import TimeManagementMethods from '@/components/TimeManagementMethods';
 import AppBlocker from '@/components/AppBlocker';
+import SubjectQuiz from '@/components/SubjectQuiz';
 import { useTasksStore } from '@/hooks/useTasksStore';
+import { useAuth } from '@/hooks/useAuth';
 import {
   LayoutDashboard,
   Target,
@@ -26,6 +28,7 @@ import {
   Home,
   Sparkles,
   Shield,
+  BookOpen,
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
 import AkoChat from '@/components/AkoChat';
@@ -63,12 +66,13 @@ const mascotMessages: Record<MascotMood, string[]> = {
   ],
 };
 
-type ViewType = 'home' | 'tasks' | 'kanban' | 'calendar' | 'goals' | 'dashboard' | 'focus';
+type ViewType = 'home' | 'tasks' | 'kanban' | 'calendar' | 'goals' | 'dashboard' | 'focus' | 'quiz';
 
 const viewTabs = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'tasks', label: 'Tasks', icon: LayoutDashboard },
   { id: 'focus', label: 'Focus', icon: Shield },
+  { id: 'quiz', label: 'Quiz', icon: BookOpen },
   { id: 'kanban', label: 'Board', icon: LayoutGrid },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'goals', label: 'Goals', icon: Target },
@@ -77,6 +81,7 @@ const viewTabs = [
 
 const Index = () => {
   const { tasks } = useTasksStore();
+  const { displayName } = useAuth();
   const [mascotMessage, setMascotMessage] = useState(mascotMessages.neutral[0]);
   const [mascotMood, setMascotMood] = useState<MascotMood>('casual');
   const [streak, setStreak] = useState(7);
@@ -150,7 +155,7 @@ const Index = () => {
   }, []);
 
   const handleNavigate = useCallback((view: string) => {
-    const validViews: ViewType[] = ['home', 'tasks', 'kanban', 'calendar', 'goals', 'dashboard', 'focus'];
+    const validViews: ViewType[] = ['home', 'tasks', 'kanban', 'calendar', 'goals', 'dashboard', 'focus', 'quiz'];
     if (validViews.includes(view as ViewType)) {
       setActiveView(view as ViewType);
     }
@@ -160,6 +165,8 @@ const Index = () => {
     switch (activeView) {
       case 'focus':
         return <AppBlocker tasks={tasks.filter(t => !t.completed).map(t => ({ id: t.id, title: t.title, completed: t.completed, priority: t.priority }))} />;
+      case 'quiz':
+        return <SubjectQuiz />;
       case 'kanban':
         return <KanbanBoard />;
       case 'calendar':

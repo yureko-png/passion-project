@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
-import { Menu, Bell, Settings, Moon, Sun, Sparkles } from 'lucide-react';
+import { Menu, Bell, Settings, Moon, Sun, Sparkles, LogOut } from 'lucide-react';
 import SettingsSheet from './SettingsSheet';
 import SidebarMenu from './SidebarMenu';
 import { useState } from 'react';
 import { useSettingsStore } from '@/hooks/useSettingsStore';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   activeView?: string;
@@ -15,10 +17,19 @@ const Header = ({ activeView = 'home', onNavigate, onOpenModomoro }: HeaderProps
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { settings, updateSettings } = useSettingsStore();
+  const { displayName, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleTheme = () => {
     updateSettings({ darkMode: !settings.darkMode });
   };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const name = displayName || settings.displayName;
 
   return (
     <>
@@ -91,10 +102,20 @@ const Header = ({ activeView = 'home', onNavigate, onOpenModomoro }: HeaderProps
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary/60 cursor-pointer hover:bg-secondary/80 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-spirit-gradient flex items-center justify-center">
-              <span className="text-sm font-bold text-white">{settings.displayName.charAt(0).toUpperCase()}</span>
+              <span className="text-sm font-bold text-white">{name.charAt(0).toUpperCase()}</span>
             </div>
-            <span className="text-sm font-semibold text-foreground hidden sm:block">{settings.displayName}</span>
+            <span className="text-sm font-semibold text-foreground hidden sm:block">{name}</span>
           </motion.div>
+
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={handleLogout}
+            className="p-2.5 rounded-xl hover:bg-destructive/10 transition-all group"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5 text-muted-foreground group-hover:text-destructive transition-colors" />
+          </motion.button>
         </div>
       </motion.header>
 
