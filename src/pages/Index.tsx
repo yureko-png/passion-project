@@ -81,6 +81,7 @@ const viewTabs = [
 
 const Index = () => {
   const { tasks } = useTasksStore();
+  const { displayName } = useAuth();
   const [mascotMessage, setMascotMessage] = useState(mascotMessages.neutral[0]);
   const [mascotMood, setMascotMood] = useState<MascotMood>('casual');
   const [streak, setStreak] = useState(7);
