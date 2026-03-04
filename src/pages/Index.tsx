@@ -16,7 +16,9 @@ import RemindersWidget from '@/components/RemindersWidget';
 import QuickNotes from '@/components/QuickNotes';
 import TimeManagementMethods from '@/components/TimeManagementMethods';
 import AppBlocker from '@/components/AppBlocker';
+import SubjectQuiz from '@/components/SubjectQuiz';
 import { useTasksStore } from '@/hooks/useTasksStore';
+import { useAuth } from '@/hooks/useAuth';
 import {
   LayoutDashboard,
   Target,
@@ -26,6 +28,7 @@ import {
   Home,
   Sparkles,
   Shield,
+  BookOpen,
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
 import AkoChat from '@/components/AkoChat';
