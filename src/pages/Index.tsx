@@ -165,6 +165,8 @@ const Index = () => {
     switch (activeView) {
       case 'focus':
         return <AppBlocker tasks={tasks.filter(t => !t.completed).map(t => ({ id: t.id, title: t.title, completed: t.completed, priority: t.priority }))} />;
+      case 'quiz':
+        return <SubjectQuiz />;
       case 'kanban':
         return <KanbanBoard />;
       case 'calendar':
