@@ -66,12 +66,13 @@ const mascotMessages: Record<MascotMood, string[]> = {
   ],
 };
 
-type ViewType = 'home' | 'tasks' | 'kanban' | 'calendar' | 'goals' | 'dashboard' | 'focus';
+type ViewType = 'home' | 'tasks' | 'kanban' | 'calendar' | 'goals' | 'dashboard' | 'focus' | 'quiz';
 
 const viewTabs = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'tasks', label: 'Tasks', icon: LayoutDashboard },
   { id: 'focus', label: 'Focus', icon: Shield },
+  { id: 'quiz', label: 'Quiz', icon: BookOpen },
   { id: 'kanban', label: 'Board', icon: LayoutGrid },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'goals', label: 'Goals', icon: Target },
