@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
-import { BarChart3, TrendingUp, Clock, Target, Flame, CheckCircle2, Calendar, Zap } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, Target, Flame, CheckCircle2, Zap } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { useSettingsStore } from '@/hooks/useSettingsStore';
 
 const weeklyData = [
   { day: 'Mon', focus: 120, tasks: 8, goals: 2 },
@@ -34,63 +35,55 @@ const colorMap = {
 };
 
 const Dashboard = () => {
+  const { settings } = useSettingsStore();
+  const isDark = settings.darkMode;
+
+  const tooltipStyle = {
+    background: isDark ? 'hsl(220, 20%, 12%)' : 'hsl(0, 0%, 100%)',
+    border: `1px solid ${isDark ? 'hsl(220, 15%, 22%)' : 'hsl(220, 20%, 88%)'}`,
+    borderRadius: '8px',
+    fontSize: '12px',
+    color: isDark ? 'hsl(220, 15%, 90%)' : 'hsl(220, 25%, 15%)',
+  };
+
+  const gridStroke = isDark ? 'hsl(220, 15%, 20%)' : 'hsl(220, 20%, 88%)';
+  const axisStroke = isDark ? 'hsl(220, 10%, 40%)' : 'hsl(220, 15%, 45%)';
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6"
-    >
-      {/* Header */}
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-6">
       <div className="glass-card p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-xl bg-primary/10">
             <BarChart3 className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-primary">
-              Dashboard
-            </h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-primary">Dashboard</h3>
             <p className="text-xs text-muted-foreground">Your productivity insights</p>
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {statsCards.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-card-hover p-4"
-            >
+            <motion.div key={stat.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="glass-card-hover p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className={`p-2 rounded-lg ${colorMap[stat.color as keyof typeof colorMap]}`}>
                   <stat.icon className="w-4 h-4" />
                 </div>
                 <span className="text-[10px] font-medium text-mint">{stat.change}</span>
               </div>
-              <p className="text-2xl font-bold">{stat.value}</p>
+              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
               <p className="text-xs text-muted-foreground">{stat.title}</p>
             </motion.div>
           ))}
         </div>
       </div>
 
-      {/* Charts Row */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Weekly Focus Chart */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card p-6"
-        >
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <h4 className="text-sm font-semibold">Weekly Focus</h4>
+              <h4 className="text-sm font-semibold text-foreground">Weekly Focus</h4>
             </div>
             <span className="text-xs text-muted-foreground">Last 7 days</span>
           </div>
@@ -103,67 +96,31 @@ const Dashboard = () => {
                     <stop offset="95%" stopColor="hsl(210, 90%, 55%)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 88%)" />
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(220, 15%, 45%)" />
-                <YAxis tick={{ fontSize: 10 }} stroke="hsl(220, 15%, 45%)" />
-                <Tooltip
-                  contentStyle={{
-                    background: 'hsl(0, 0%, 100%)',
-                    border: '1px solid hsl(220, 20%, 88%)',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="focus"
-                  stroke="hsl(210, 90%, 55%)"
-                  strokeWidth={2}
-                  fill="url(#focusGradient)"
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke={axisStroke} />
+                <YAxis tick={{ fontSize: 10 }} stroke={axisStroke} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area type="monotone" dataKey="focus" stroke="hsl(210, 90%, 55%)" strokeWidth={2} fill="url(#focusGradient)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
 
-        {/* Tasks by Category */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="glass-card p-6"
-        >
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="glass-card p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-lavender" />
-              <h4 className="text-sm font-semibold">Time by Category</h4>
+              <h4 className="text-sm font-semibold text-foreground">Time by Category</h4>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="h-40 w-40">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={60}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
+                  <Pie data={categoryData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={4} dataKey="value">
+                    {categoryData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} />))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: 'hsl(0, 0%, 100%)',
-                      border: '1px solid hsl(220, 20%, 88%)',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                    }}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -171,13 +128,10 @@ const Dashboard = () => {
               {categoryData.map((category) => (
                 <div key={category.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: category.color }}
-                    />
-                    <span className="text-xs">{category.name}</span>
+                    <span className="w-2 h-2 rounded-full" style={{ background: category.color }} />
+                    <span className="text-xs text-foreground">{category.name}</span>
                   </div>
-                  <span className="text-xs font-medium">{category.value}%</span>
+                  <span className="text-xs font-medium text-foreground">{category.value}%</span>
                 </div>
               ))}
             </div>
@@ -185,43 +139,24 @@ const Dashboard = () => {
         </motion.div>
       </div>
 
-      {/* Tasks Completion Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="glass-card p-6"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-mint" />
-            <h4 className="text-sm font-semibold">Tasks Completed</h4>
+            <h4 className="text-sm font-semibold text-foreground">Tasks Completed</h4>
           </div>
           <div className="flex gap-4 text-xs">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              <span className="text-muted-foreground">Tasks</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-mint" />
-              <span className="text-muted-foreground">Goals</span>
-            </div>
+            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary" /><span className="text-muted-foreground">Tasks</span></div>
+            <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-mint" /><span className="text-muted-foreground">Goals</span></div>
           </div>
         </div>
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 88%)" />
-              <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke="hsl(220, 15%, 45%)" />
-              <YAxis tick={{ fontSize: 10 }} stroke="hsl(220, 15%, 45%)" />
-              <Tooltip
-                contentStyle={{
-                  background: 'hsl(0, 0%, 100%)',
-                  border: '1px solid hsl(220, 20%, 88%)',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                }}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+              <XAxis dataKey="day" tick={{ fontSize: 10 }} stroke={axisStroke} />
+              <YAxis tick={{ fontSize: 10 }} stroke={axisStroke} />
+              <Tooltip contentStyle={tooltipStyle} />
               <Bar dataKey="tasks" fill="hsl(210, 90%, 55%)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="goals" fill="hsl(160, 50%, 50%)" radius={[4, 4, 0, 0]} />
             </BarChart>

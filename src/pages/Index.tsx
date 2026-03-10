@@ -20,18 +20,13 @@ import SubjectQuiz from '@/components/SubjectQuiz';
 import { useTasksStore } from '@/hooks/useTasksStore';
 import { useAuth } from '@/hooks/useAuth';
 import {
-  LayoutDashboard,
-  Target,
-  LayoutGrid,
-  Calendar,
-  BarChart3,
-  Home,
-  Sparkles,
-  Shield,
-  BookOpen,
+  LayoutDashboard, Target, LayoutGrid, Calendar, BarChart3,
+  Home, Sparkles, Shield, BookOpen,
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
 import AkoChat from '@/components/AkoChat';
+import bgShrine from '@/assets/bg-anime-shrine.jpg';
+import bgField from '@/assets/bg-anime-field.jpeg';
 
 const mascotMessages: Record<MascotMood, string[]> = {
   encouraging: [
@@ -90,7 +85,6 @@ const Index = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [activeView, setActiveView] = useState<ViewType>('home');
   const [isCommandBarOpen, setIsCommandBarOpen] = useState(false);
-  const [isModomoroOpen, setIsModomoroOpen] = useState(false);
   const [isPomodoroOpen, setIsPomodoroOpen] = useState(false);
   const timerRef = useRef<PomodoroTimerRef>(null);
 
@@ -104,7 +98,6 @@ const Index = () => {
     }, 800);
   };
 
-  // Keyboard shortcut for command bar
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -117,12 +110,10 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    // Initial greeting
     setTimeout(() => {
       changeMascotState('casual', "Welcome back! Ready to crush your goals today? 🌟");
     }, 1000);
 
-    // Rotate mascot messages periodically
     const interval = setInterval(() => {
       const moods: MascotMood[] = ['encouraging', 'neutral', 'casual'];
       const randomMood = moods[Math.floor(Math.random() * moods.length)];
@@ -181,49 +172,57 @@ const Index = () => {
       default:
         return (
           <div className="space-y-6">
-            {/* Motivational Quote Section */}
+            {/* Hero Banner with anime background */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.6 }}
+              className="relative rounded-2xl overflow-hidden h-48 sm:h-56"
             >
-              <MotivationalQuote />
+              <img src={bgShrine} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+              <div className="relative z-10 h-full flex flex-col justify-end p-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                  Selamat datang, {displayName || 'Adventurer'}! ⚔️
+                </h2>
+                <p className="text-white/70 text-sm">Your quest for productivity continues today.</p>
+              </div>
             </motion.div>
 
-            {/* Stats Section */}
+            {/* Stats */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.5, delay: 0.1 }}
             >
               <StreakTracker currentStreak={streak} timeSaved={timeSaved} bestStreak={bestStreak} />
+            </motion.div>
+
+            {/* Quote */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+            >
+              <MotivationalQuote />
             </motion.div>
 
             {/* Timer */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.5, delay: 0.2 }}
             >
               <PomodoroTimer ref={timerRef} onComplete={handleTimerComplete} />
             </motion.div>
 
-            {/* Time Management Methods */}
+            {/* Recommended Actions */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.5, delay: 0.25 }}
             >
-              <TimeManagementMethods onStartTimer={handleStartTimer} />
-            </motion.div>
-
-            {/* Task Manager */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <TaskManager onTaskComplete={handleTaskComplete} />
+              <RecommendedActions onStartTimer={handleStartTimer} />
             </motion.div>
           </div>
         );
@@ -231,13 +230,11 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen pb-8">
+    <div className="min-h-screen bg-background pb-8">
       <Header activeView={activeView} onNavigate={handleNavigate} onOpenModomoro={() => setIsPomodoroOpen(true)} />
 
-      {/* Pomodoro Mode */}
       <ModomoroMode isOpen={isPomodoroOpen} onClose={() => setIsPomodoroOpen(false)} />
 
-      {/* Command Bar */}
       <CommandBar
         isOpen={isCommandBarOpen}
         onClose={() => setIsCommandBarOpen(false)}
@@ -246,7 +243,7 @@ const Index = () => {
       />
 
       {/* View Tabs */}
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b">
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 max-w-7xl">
           <div className="flex items-center gap-1 py-2 overflow-x-auto scrollbar-hide">
             {viewTabs.map((tab) => (
@@ -266,7 +263,6 @@ const Index = () => {
               </motion.button>
             ))}
 
-            {/* Pomodoro Mode Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -277,13 +273,12 @@ const Index = () => {
               <span className="hidden sm:inline">Pomodoro</span>
             </motion.button>
 
-            {/* Command Bar Trigger */}
             <button
               onClick={() => setIsCommandBarOpen(true)}
               className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
               <span>Search</span>
-              <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px]">
+              <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px]">
                 ⌘K
               </kbd>
             </button>
@@ -292,16 +287,11 @@ const Index = () => {
       </div>
 
       <main className="container mx-auto px-4 py-6 max-w-7xl">
-       {/* Ako AI Chat */}
-       <AkoChat
-         timerState="idle"
-         completedTasks={0}
-       />
- 
-        {/* Main Content Grid */}
+        <AkoChat timerState="idle" completedTasks={0} />
+
         <div className="grid lg:grid-cols-12 gap-6">
-          {/* Left Column - Main Features */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* Main Content */}
+          <div className="lg:col-span-8 space-y-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeView}
@@ -315,13 +305,13 @@ const Index = () => {
             </AnimatePresence>
           </div>
 
-          {/* Right Column - Mascot & Widgets */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Mascot Section - Hero Size */}
+          {/* Sidebar */}
+          <div className="lg:col-span-4 space-y-6">
+            {/* Mascot */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.6, delay: 0.3 }}
               className="glass-card p-6 lg:sticky lg:top-28"
             >
               <Mascot
@@ -333,20 +323,36 @@ const Index = () => {
               />
             </motion.div>
 
-            {/* Recommended Actions */}
+            {/* Quick Actions Card with anime bg */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.6, delay: 0.35 }}
+              className="relative rounded-2xl overflow-hidden"
             >
-              <RecommendedActions onStartTimer={handleStartTimer} />
+              <img src={bgField} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+              <div className="relative z-10 p-5">
+                <h3 className="text-white font-bold text-sm mb-3">🌿 Today's Quest</h3>
+                <div className="space-y-2">
+                  {tasks.filter(t => !t.completed).slice(0, 3).map(task => (
+                    <div key={task.id} className="flex items-center gap-2 text-white/90 text-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#1db954]" />
+                      <span className="truncate">{task.title}</span>
+                    </div>
+                  ))}
+                  {tasks.filter(t => !t.completed).length === 0 && (
+                    <p className="text-white/50 text-sm">No quests yet. Add a task to begin!</p>
+                  )}
+                </div>
+              </div>
             </motion.div>
 
-            {/* Reminders Widget */}
+            {/* Reminders */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.6, delay: 0.4 }}
             >
               <RemindersWidget />
             </motion.div>
@@ -355,10 +361,21 @@ const Index = () => {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.6, delay: 0.45 }}
             >
               <QuickNotes />
             </motion.div>
+
+            {/* Time Management (only show on home) */}
+            {activeView === 'home' && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+              >
+                <TimeManagementMethods onStartTimer={handleStartTimer} />
+              </motion.div>
+            )}
           </div>
         </div>
       </main>

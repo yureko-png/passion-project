@@ -6,38 +6,27 @@
 
 @layer base {
   :root {
-    /* White & Spiritual Theme - Time to Changing */
     --background: 220 30% 98%;
     --foreground: 220 25% 15%;
-
     --card: 0 0% 100%;
     --card-foreground: 220 25% 15%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 220 25% 15%;
-
     --primary: 210 90% 55%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 220 20% 94%;
     --secondary-foreground: 220 25% 25%;
-
     --muted: 220 15% 92%;
     --muted-foreground: 220 15% 45%;
-
     --accent: 340 75% 60%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 220 20% 88%;
     --input: 220 20% 88%;
     --ring: 210 90% 55%;
-
     --radius: 1rem;
 
-    /* Custom tokens */
     --spirit: 210 90% 55%;
     --spirit-light: 210 85% 70%;
     --spirit-dark: 210 95% 45%;
@@ -47,28 +36,24 @@
     --mint: 160 50% 50%;
     --warm: 35 90% 60%;
     
-    /* Chart colors */
     --chart-1: 210 90% 55%;
     --chart-2: 340 75% 60%;
     --chart-3: 270 50% 65%;
     --chart-4: 160 50% 50%;
     --chart-5: 35 90% 60%;
     
-    /* Glassmorphism */
     --glass-bg: 0 0% 100% / 0.85;
     --glass-border: 220 20% 85% / 0.6;
     
-    /* Gradients */
     --gradient-spirit: linear-gradient(135deg, hsl(210, 90%, 55%), hsl(270, 50%, 65%));
     --gradient-warm: linear-gradient(135deg, hsl(35, 90%, 60%), hsl(340, 75%, 60%));
     --gradient-soft: linear-gradient(180deg, hsl(220, 30%, 98%), hsl(220, 25%, 95%));
     --gradient-streak: linear-gradient(135deg, hsl(35, 95%, 55%), hsl(340, 75%, 60%));
     
-    /* Shadows */
-    --shadow-soft: 0 4px 20px hsl(220, 30%, 75% / 0.15);
-    --shadow-card: 0 8px 32px hsl(220, 30%, 70% / 0.12);
-    --shadow-elevated: 0 20px 60px hsl(220, 30%, 70% / 0.18);
-    --shadow-glow: 0 0 40px hsl(210, 90%, 55% / 0.2);
+    --shadow-soft: 0 4px 20px hsl(220 30% 75% / 0.15);
+    --shadow-card: 0 8px 32px hsl(220 30% 70% / 0.12);
+    --shadow-elevated: 0 20px 60px hsl(220 30% 70% / 0.18);
+    --shadow-glow: 0 0 40px hsl(210 90% 55% / 0.2);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 25% 15%;
@@ -81,28 +66,42 @@
   }
 
   .dark {
-    --background: 220 25% 8%;
-    --foreground: 220 15% 95%;
-    --card: 220 25% 12%;
-    --card-foreground: 220 15% 95%;
-    --popover: 220 25% 10%;
-    --popover-foreground: 220 15% 95%;
+    --background: 220 20% 7%;
+    --foreground: 220 15% 92%;
+    --card: 220 20% 10%;
+    --card-foreground: 220 15% 92%;
+    --popover: 220 20% 9%;
+    --popover-foreground: 220 15% 92%;
     --primary: 210 90% 60%;
-    --primary-foreground: 220 25% 8%;
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 220 15% 90%;
-    --muted: 220 20% 20%;
-    --muted-foreground: 220 15% 55%;
+    --primary-foreground: 220 20% 7%;
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 220 15% 85%;
+    --muted: 220 15% 14%;
+    --muted-foreground: 220 10% 55%;
     --accent: 340 75% 60%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 22%;
-    --input: 220 20% 22%;
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
     --ring: 210 90% 60%;
     
-    --glass-bg: 220 25% 12% / 0.9;
-    --glass-border: 220 20% 25% / 0.6;
+    --glass-bg: 220 20% 10% / 0.92;
+    --glass-border: 220 15% 20% / 0.6;
+    
+    --shadow-soft: 0 4px 20px hsl(220 20% 5% / 0.4);
+    --shadow-card: 0 8px 32px hsl(220 20% 5% / 0.5);
+    --shadow-elevated: 0 20px 60px hsl(220 20% 5% / 0.6);
+    --shadow-glow: 0 0 40px hsl(210 90% 55% / 0.15);
+
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 220 15% 92%;
+    --sidebar-primary: 210 90% 60%;
+    --sidebar-primary-foreground: 220 20% 7%;
+    --sidebar-accent: 220 15% 15%;
+    --sidebar-accent-foreground: 220 15% 85%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 210 90% 60%;
   }
 }
 
@@ -114,8 +113,16 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Quicksand', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(180deg, hsl(220, 30%, 98%), hsl(220, 25%, 96%));
     min-height: 100vh;
+  }
+
+  .dark body,
+  body:has(.dark) {
+    background: hsl(220, 20%, 7%);
+  }
+
+  html:not(.dark) body {
+    background: linear-gradient(180deg, hsl(220, 30%, 98%), hsl(220, 25%, 96%));
   }
 
   html {
@@ -166,8 +173,15 @@
   .speech-bubble {
     @apply glass-card px-5 py-4 relative;
     border-radius: 1.25rem;
-    background: hsl(0 0% 100% / 0.95);
     border: 2px solid hsl(210 90% 55% / 0.2);
+  }
+
+  .dark .speech-bubble {
+    background: hsl(220 20% 12% / 0.95);
+  }
+
+  html:not(.dark) .speech-bubble {
+    background: hsl(0 0% 100% / 0.95);
   }
 
   .speech-bubble::before {
@@ -189,7 +203,14 @@
     transform: translateX(-50%);
     border-left: 12px solid transparent;
     border-right: 12px solid transparent;
+  }
+
+  html:not(.dark) .speech-bubble::after {
     border-top: 12px solid hsl(0 0% 100% / 0.95);
+  }
+
+  .dark .speech-bubble::after {
+    border-top: 12px solid hsl(220 20% 12% / 0.95);
   }
 
   .btn-spirit {
@@ -206,13 +227,12 @@
 
   .btn-glass {
     @apply px-6 py-3 rounded-xl font-medium transition-all duration-300;
-    background: hsl(0 0% 100% / 0.8);
+    background: hsl(var(--glass-bg));
     backdrop-filter: blur(10px);
-    border: 1px solid hsl(220 20% 88%);
+    border: 1px solid hsl(var(--border));
   }
 
   .btn-glass:hover {
-    background: hsl(0 0% 100%);
     border-color: hsl(210 90% 55% / 0.3);
     box-shadow: var(--shadow-soft);
   }
@@ -224,7 +244,7 @@
   }
 
   .timer-ring-bg {
-    stroke: hsl(220, 20%, 90%);
+    stroke: hsl(var(--muted));
   }
 
   .focus-mode-active {
@@ -232,12 +252,8 @@
   }
 
   @keyframes pulse-spirit {
-    0%, 100% {
-      filter: drop-shadow(0 0 12px hsl(210, 90%, 55% / 0.4));
-    }
-    50% {
-      filter: drop-shadow(0 0 24px hsl(210, 90%, 55% / 0.6));
-    }
+    0%, 100% { filter: drop-shadow(0 0 12px hsl(210, 90%, 55% / 0.4)); }
+    50% { filter: drop-shadow(0 0 24px hsl(210, 90%, 55% / 0.6)); }
   }
 
   .streak-flame {
@@ -245,12 +261,8 @@
   }
 
   @keyframes flicker {
-    0% {
-      transform: scale(1) rotate(-2deg);
-    }
-    100% {
-      transform: scale(1.05) rotate(2deg);
-    }
+    0% { transform: scale(1) rotate(-2deg); }
+    100% { transform: scale(1.05) rotate(2deg); }
   }
 
   .mascot-float {
@@ -258,12 +270,8 @@
   }
 
   @keyframes float {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-12px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
   }
 
   .mascot-breathing {
@@ -271,12 +279,8 @@
   }
 
   @keyframes breathe {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.02);
-    }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
   }
 
   .fade-slide-in {
@@ -284,14 +288,8 @@
   }
 
   @keyframes fadeSlideIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .action-card {
@@ -307,34 +305,31 @@
   }
 }
 
-/* Reduce motion for accessibility */
 .reduce-motion * {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(220, 20%, 96%);
+  background: hsl(var(--muted));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(220, 20%, 80%);
+  background: hsl(var(--border));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(220, 20%, 70%);
+  background: hsl(var(--muted-foreground));
 }
 
-/* Smooth transitions for all interactive elements */
 button, a, [role="button"] {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }

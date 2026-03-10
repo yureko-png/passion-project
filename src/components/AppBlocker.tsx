@@ -1,32 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Shield,
-  ShieldOff,
-  Settings,
-  Plus,
-  X,
-  Clock,
-  Volume2,
-  VolumeX,
-  CheckCircle,
-  AlertTriangle,
-  Zap,
-  Star,
-  Coffee,
-  BookOpen,
-  Dumbbell,
-  Music,
-  Pencil,
-  ChevronRight,
+  Shield, ShieldOff, Settings, Plus, X, Clock, Volume2, VolumeX,
+  CheckCircle, AlertTriangle, Zap, Star, Coffee, BookOpen, Dumbbell,
+  Music, Pencil, ChevronRight, Timer, Play, Pause, Lock, Unlock,
 } from "lucide-react";
-
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
+import bgShrine from '@/assets/bg-anime-shrine.jpg';
 
 interface AppBlockerSettings {
-  duration: number; // minutes
+  duration: number;
   blockedApps: string[];
   suggestedActivities: string[];
   alarmEnabled: boolean;
@@ -42,10 +24,6 @@ interface Task {
 
 type MascotMood = "idle" | "encouraging" | "warning" | "celebrating" | "focused";
 
-// ─────────────────────────────────────────────
-// Default config
-// ─────────────────────────────────────────────
-
 const DEFAULT_SETTINGS: AppBlockerSettings = {
   duration: 25,
   blockedApps: ["Instagram", "TikTok", "YouTube", "Twitter/X", "Reddit"],
@@ -56,64 +34,13 @@ const DEFAULT_SETTINGS: AppBlockerSettings = {
 
 const STORAGE_KEY = "appBlockerSettings";
 
-// ─────────────────────────────────────────────
-// Mascot messages per mood
-// ─────────────────────────────────────────────
-
 const MASCOT_MESSAGES: Record<MascotMood, string[]> = {
-  idle: [
-    "Ready to focus? Let's do this! 🌟",
-    "I'll keep you on track~ ✨",
-    "Focus mode is waiting for you!",
-  ],
-  encouraging: [
-    "You're doing amazing! Keep going 💪",
-    "Halfway there! Don't give up~",
-    "I believe in you! Stay focused ⭐",
-    "Great progress! You've got this!",
-    "Every minute counts! You're killing it 🔥",
-  ],
-  warning: [
-    "Hey! Come back! You were doing so well 😤",
-    "No cheating! Back to work! 😠",
-    "I see you trying to sneak away... 👀",
-    "Don't give up now! You're so close!",
-  ],
-  celebrating: [
-    "YOU DID IT!!! 🎉🎊✨",
-    "Amazing focus session! I'm so proud~",
-    "Incredible! You crushed it! 🏆",
-  ],
-  focused: [
-    "Ssh... deep focus mode 🎯",
-    "You're in the zone! Keep it up~",
-    "Productivity level: over 9000! ⚡",
-    "Look at you, being so productive! 💼",
-  ],
+  idle: ["Ready to focus? Let's do this! 🌟", "I'll keep you on track~ ✨", "Focus mode is waiting for you!"],
+  encouraging: ["You're doing amazing! Keep going 💪", "Halfway there! Don't give up~", "I believe in you! Stay focused ⭐", "Great progress! You've got this!", "Every minute counts! 🔥"],
+  warning: ["Hey! Come back! You were doing so well 😤", "No cheating! Back to work! 😠", "I see you trying to sneak away... 👀", "Don't give up now! You're so close!"],
+  celebrating: ["YOU DID IT!!! 🎉🎊✨", "Amazing focus session! I'm so proud~", "Incredible! You crushed it! 🏆"],
+  focused: ["Ssh... deep focus mode 🎯", "You're in the zone! Keep it up~", "Productivity level: over 9000! ⚡"],
 };
-
-const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
-  water: <Coffee size={14} />,
-  stretch: <Dumbbell size={14} />,
-  journal: <Pencil size={14} />,
-  read: <BookOpen size={14} />,
-  music: <Music size={14} />,
-  default: <Star size={14} />,
-};
-
-function getActivityIcon(activity: string) {
-  const lower = activity.toLowerCase();
-  if (lower.includes("water") || lower.includes("drink")) return ACTIVITY_ICONS.water;
-  if (lower.includes("stretch") || lower.includes("exercise") || lower.includes("yoga")) return ACTIVITY_ICONS.stretch;
-  if (lower.includes("journal") || lower.includes("write")) return ACTIVITY_ICONS.journal;
-  if (lower.includes("read") || lower.includes("book")) return ACTIVITY_ICONS.read;
-  if (lower.includes("music") || lower.includes("listen")) return ACTIVITY_ICONS.music;
-  return ACTIVITY_ICONS.default;
-}
-
-// ─────────────────────────────────────────────
-// Audio helpers
-// ─────────────────────────────────────────────
 
 function playAlarmSound() {
   try {
@@ -129,9 +56,7 @@ function playAlarmSound() {
     gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.5);
-  } catch (e) {
-    // ignore
-  }
+  } catch {}
 }
 
 function playSuccessSound() {
@@ -149,79 +74,24 @@ function playSuccessSound() {
       osc.start(ctx.currentTime + delay);
       osc.stop(ctx.currentTime + delay + 0.4);
     });
-  } catch (e) {
-    // ignore
-  }
+  } catch {}
 }
-
-// ─────────────────────────────────────────────
-// Mascot SVG (Ako — simplified inline)
-// ─────────────────────────────────────────────
-
-function AkoMascot({ mood, size = 96 }: { mood: MascotMood; size?: number }) {
-  const faceMap: Record<MascotMood, { eyes: string; mouth: string; blush: boolean }> = {
-    idle: { eyes: "😊", mouth: "", blush: false },
-    encouraging: { eyes: "😄", mouth: "", blush: true },
-    warning: { eyes: "😤", mouth: "", blush: false },
-    celebrating: { eyes: "🥳", mouth: "", blush: true },
-    focused: { eyes: "😤", mouth: "", blush: false },
-  };
-
-  const colors: Record<MascotMood, string> = {
-    idle: "from-indigo-400 to-purple-500",
-    encouraging: "from-emerald-400 to-teal-500",
-    warning: "from-red-400 to-orange-500",
-    celebrating: "from-yellow-400 to-pink-500",
-    focused: "from-blue-500 to-indigo-600",
-  };
-
-  const { eyes } = faceMap[mood];
-
-  return (
-    <div
-      className={`relative flex items-center justify-center rounded-full bg-gradient-to-br ${colors[mood]} shadow-2xl`}
-      style={{ width: size, height: size }}
-    >
-      {/* ears */}
-      <div className="absolute -top-2 left-3 w-5 h-6 rounded-t-full bg-gradient-to-b from-pink-300 to-pink-400 border-2 border-white/30" />
-      <div className="absolute -top-2 right-3 w-5 h-6 rounded-t-full bg-gradient-to-b from-pink-300 to-pink-400 border-2 border-white/30" />
-      {/* face */}
-      <span className="text-3xl select-none">{eyes}</span>
-      {/* blush */}
-      {faceMap[mood].blush && (
-        <>
-          <div className="absolute bottom-7 left-4 w-5 h-2 rounded-full bg-pink-300/60" />
-          <div className="absolute bottom-7 right-4 w-5 h-2 rounded-full bg-pink-300/60" />
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Main Component
-// ─────────────────────────────────────────────
 
 interface AppBlockerProps {
-  /** Optional task list from your task store */
   tasks?: Task[];
 }
 
 export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
-  // settings
   const [settings, setSettings] = useState<AppBlockerSettings>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) } : DEFAULT_SETTINGS;
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
+    } catch { return DEFAULT_SETTINGS; }
   });
 
-  // UI state
   const [showSettings, setShowSettings] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0); // seconds
+  const [timeLeft, setTimeLeft] = useState(0);
   const [mascotMood, setMascotMood] = useState<MascotMood>("idle");
   const [mascotMessage, setMascotMessage] = useState(MASCOT_MESSAGES.idle[0]);
   const [showWarning, setShowWarning] = useState(false);
@@ -233,23 +103,16 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messageRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const idleAnimRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const warningRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeTasks = tasks.filter((t) => !t.completed);
   const totalSeconds = settings.duration * 60;
   const progress = isBlocking ? ((totalSeconds - timeLeft) / totalSeconds) * 100 : 0;
 
-  // ── persist settings ──────────────────────────────────────────────────────
-
   const saveSettings = useCallback((s: AppBlockerSettings) => {
     setSettings(s);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-    } catch {/* */}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
   }, []);
-
-  // ── mascot helpers ────────────────────────────────────────────────────────
 
   const setMascot = useCallback((mood: MascotMood) => {
     const msgs = MASCOT_MESSAGES[mood];
@@ -257,104 +120,55 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
     setMascotMessage(msgs[Math.floor(Math.random() * msgs.length)]);
   }, []);
 
-  // ── focus loss detection ──────────────────────────────────────────────────
-
+  // Focus loss detection
   useEffect(() => {
     if (!isBlocking) return;
-
     const handleBlur = () => {
       if (!isBlocking) return;
       if (settings.alarmEnabled) playAlarmSound();
       setMascot("warning");
       setShowWarning(true);
       if (warningRef.current) clearTimeout(warningRef.current);
-      warningRef.current = setTimeout(() => {
-        setShowWarning(false);
-        setMascot("focused");
-      }, 5000);
+      warningRef.current = setTimeout(() => { setShowWarning(false); setMascot("focused"); }, 5000);
     };
-
-    const handleVisibility = () => {
-      if (document.hidden && isBlocking) handleBlur();
-    };
-
+    const handleVisibility = () => { if (document.hidden && isBlocking) handleBlur(); };
     window.addEventListener("blur", handleBlur);
     document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      window.removeEventListener("blur", handleBlur);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
+    return () => { window.removeEventListener("blur", handleBlur); document.removeEventListener("visibilitychange", handleVisibility); };
   }, [isBlocking, settings.alarmEnabled, setMascot]);
 
-  // ── countdown ─────────────────────────────────────────────────────────────
-
+  // Countdown
   useEffect(() => {
     if (!isBlocking) return;
-
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleComplete();
-          return 0;
-        }
+        if (prev <= 1) { clearInterval(timerRef.current!); handleComplete(); return 0; }
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timerRef.current!);
   }, [isBlocking]);
 
-  // ── periodic messages ─────────────────────────────────────────────────────
-
+  // Periodic messages
   useEffect(() => {
     if (!isBlocking) return;
-
     messageRef.current = setInterval(() => {
       setMascot("encouraging");
-      // rotate tasks
-      if (activeTasks.length > 0) {
-        setCurrentTaskIndex((i) => (i + 1) % activeTasks.length);
-      }
-    }, 120_000); // every 2 minutes
-
+      if (activeTasks.length > 0) setCurrentTaskIndex((i) => (i + 1) % activeTasks.length);
+    }, 120_000);
     return () => clearInterval(messageRef.current!);
   }, [isBlocking, activeTasks.length, setMascot]);
-
-  // ── idle animations ───────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!isBlocking) return;
-
-    idleAnimRef.current = setInterval(() => {
-      if (mascotMood === "focused" || mascotMood === "encouraging") {
-        const r = Math.random();
-        if (r < 0.4) setMascot("encouraging");
-        else setMascot("focused");
-      }
-    }, 8000);
-
-    return () => clearInterval(idleAnimRef.current!);
-  }, [isBlocking, mascotMood, setMascot]);
-
-  // ── complete ──────────────────────────────────────────────────────────────
 
   const handleComplete = useCallback(() => {
     clearInterval(timerRef.current!);
     clearInterval(messageRef.current!);
-    clearInterval(idleAnimRef.current!);
     playSuccessSound();
     setMascot("celebrating");
     setIsBlocking(false);
     setSessionComplete(true);
-    try {
-      document.exitFullscreen?.();
-    } catch {/* */}
+    try { document.exitFullscreen?.(); } catch {}
     setTimeout(() => setSessionComplete(false), 6000);
   }, [setMascot]);
-
-  // ── start blocking ────────────────────────────────────────────────────────
 
   const startBlocking = () => {
     setTimeLeft(settings.duration * 60);
@@ -363,9 +177,7 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
     setShowWarning(false);
     setIsBlocking(true);
     setMascot("focused");
-    try {
-      document.documentElement.requestFullscreen?.();
-    } catch {/* */}
+    try { document.documentElement.requestFullscreen?.(); } catch {}
   };
 
   const stopBlocking = () => {
@@ -373,14 +185,9 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
     setIsBlocking(false);
     clearInterval(timerRef.current!);
     clearInterval(messageRef.current!);
-    clearInterval(idleAnimRef.current!);
     setMascot("idle");
-    try {
-      document.exitFullscreen?.();
-    } catch {/* */}
+    try { document.exitFullscreen?.(); } catch {}
   };
-
-  // ── format time ───────────────────────────────────────────────────────────
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -388,115 +195,122 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // BLOCKING OVERLAY
-  // ─────────────────────────────────────────────────────────────────────────
+  const circumference = 2 * Math.PI * 90;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
     <>
-      {/* ── Main trigger card ────────────────────────────────── */}
+      {/* Main Card - Modern Focus Mode UI */}
       <AnimatePresence>
         {!isBlocking && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 shadow-2xl p-6 max-w-md mx-auto"
+            className="space-y-4"
           >
-            {/* bg particles */}
-            <div className="pointer-events-none absolute inset-0">
-              {[...Array(6)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute rounded-full bg-indigo-500/10"
-                  style={{
-                    width: 60 + i * 20,
-                    height: 60 + i * 20,
-                    left: `${10 + i * 15}%`,
-                    top: `${20 + (i % 3) * 25}%`,
-                  }}
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
-                  transition={{ duration: 3 + i, repeat: Infinity, delay: i * 0.5 }}
-                />
-              ))}
-            </div>
-
-            <div className="relative z-10 flex flex-col items-center gap-5 text-center">
-              {/* Mascot */}
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <AkoMascot mood={sessionComplete ? "celebrating" : "idle"} size={88} />
-              </motion.div>
-
-              {/* Title */}
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Focus Mode</h2>
-                <p className="text-indigo-300 text-sm mt-1">
-                  {sessionComplete ? "Great session! You're amazing 🎉" : "Block distractions, stay on track~"}
-                </p>
-              </div>
-
-              {/* Duration badge */}
-              <div className="flex items-center gap-2 bg-indigo-500/20 text-indigo-300 rounded-full px-4 py-1.5 text-sm font-medium border border-indigo-500/30">
-                <Clock size={14} />
-                <span>{settings.duration} min session</span>
-              </div>
-
-              {/* Active tasks preview */}
-              {settings.taskRemindersEnabled && activeTasks.length > 0 && (
-                <div className="w-full bg-white/5 rounded-2xl p-3 border border-white/10">
-                  <p className="text-xs text-slate-400 mb-2 text-left">Today's focus:</p>
-                  <div className="flex flex-col gap-1.5">
-                    {activeTasks.slice(0, 3).map((t) => (
-                      <div key={t.id} className="flex items-center gap-2 text-left">
-                        <ChevronRight size={12} className="text-indigo-400 shrink-0" />
-                        <span className="text-white/80 text-sm truncate">{t.title}</span>
-                      </div>
-                    ))}
-                  </div>
+            {/* Hero Card */}
+            <div className="relative rounded-3xl overflow-hidden">
+              <img src={bgShrine} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30" />
+              <div className="relative z-10 p-6 sm:p-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Shield className="w-5 h-5 text-primary" />
+                  <h2 className="text-xl font-bold text-white">Focus Mode</h2>
                 </div>
-              )}
+                <p className="text-white/60 text-sm mb-6 max-w-md">
+                  Block distractions and stay focused on your tasks. The AI mascot will keep you accountable!
+                </p>
 
-              {/* Blocked apps preview */}
-              <div className="flex flex-wrap gap-1.5 justify-center">
-                {settings.blockedApps.slice(0, 4).map((app) => (
-                  <span key={app} className="text-xs bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2.5 py-0.5">
-                    🚫 {app}
-                  </span>
-                ))}
-                {settings.blockedApps.length > 4 && (
-                  <span className="text-xs text-slate-400 py-0.5">+{settings.blockedApps.length - 4} more</span>
+                {/* Duration Selector */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {[15, 25, 30, 45, 60].map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => saveSettings({ ...settings, duration: d })}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                        settings.duration === d
+                          ? "bg-primary text-white shadow-lg shadow-primary/30"
+                          : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/10"
+                      }`}
+                    >
+                      {d} min
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tasks Preview */}
+                {activeTasks.length > 0 && (
+                  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 mb-6">
+                    <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-2">Focus Tasks</p>
+                    <div className="space-y-2">
+                      {activeTasks.slice(0, 3).map((t) => (
+                        <div key={t.id} className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          <span className="text-white/80 text-sm truncate">{t.title}</span>
+                        </div>
+                      ))}
+                      {activeTasks.length > 3 && (
+                        <p className="text-white/40 text-xs">+{activeTasks.length - 3} more tasks</p>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </div>
 
-              {/* Buttons */}
-              <div className="flex gap-3 w-full">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={startBlocking}
-                  className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-2xl py-3 shadow-lg shadow-indigo-500/30"
-                >
-                  <Shield size={18} />
-                  Start Focus
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowSettings(true)}
-                  className="flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-2xl px-4 border border-white/10 transition-colors"
-                >
-                  <Settings size={18} />
-                </motion.button>
+                {/* Blocked Apps */}
+                <div className="flex flex-wrap gap-1.5 mb-6">
+                  {settings.blockedApps.map((app) => (
+                    <span key={app} className="text-xs bg-red-500/20 text-red-300 border border-red-500/20 rounded-full px-2.5 py-1">
+                      🚫 {app}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={startBlocking}
+                    className="flex-1 flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold rounded-2xl py-3.5 shadow-lg shadow-primary/30 transition-colors"
+                  >
+                    <Lock className="w-4 h-4" />
+                    Start Focus ({settings.duration}m)
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowSettings(true)}
+                    className="flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-2xl px-4 border border-white/10 transition-colors"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </motion.button>
+                </div>
               </div>
             </div>
+
+            {/* Break Activities Card */}
+            {settings.suggestedActivities.length > 0 && (
+              <div className="glass-card p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-4 h-4 text-warm" />
+                  <h3 className="text-sm font-semibold text-foreground">Break Activities</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {settings.suggestedActivities.map((act, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-secondary/50 text-sm text-foreground">
+                      <Star className="w-3.5 h-3.5 text-warm flex-shrink-0" />
+                      <span className="truncate">{act}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── BLOCKING OVERLAY ──────────────────────────────────── */}
+      {/* BLOCKING OVERLAY */}
       <AnimatePresence>
         {isBlocking && (
           <motion.div
@@ -504,137 +318,108 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[500] flex flex-col items-center justify-center overflow-hidden"
-            style={{ background: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)" }}
           >
-            {/* Animated background particles */}
+            {/* Background */}
+            <img src={bgShrine} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+            {/* Floating particles */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {[...Array(20)].map((_, i) => (
+              {[...Array(15)].map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute rounded-full"
                   style={{
-                    width: 4 + (i % 5) * 3,
-                    height: 4 + (i % 5) * 3,
+                    width: 3 + (i % 4) * 2,
+                    height: 3 + (i % 4) * 2,
                     left: `${(i * 17 + 5) % 100}%`,
                     top: `${(i * 13 + 10) % 100}%`,
-                    background: i % 3 === 0 ? "#818cf8" : i % 3 === 1 ? "#a78bfa" : "#f9a8d4",
-                    opacity: 0.4,
+                    background: i % 2 === 0 ? "hsl(210, 90%, 60%)" : "hsl(270, 50%, 65%)",
+                    opacity: 0.5,
                   }}
-                  animate={{
-                    y: [-20, 20, -20],
-                    x: [-10, 10, -10],
-                    opacity: [0.2, 0.6, 0.2],
-                  }}
-                  transition={{ duration: 3 + (i % 4), repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
+                  animate={{ y: [-20, 20, -20], opacity: [0.2, 0.6, 0.2] }}
+                  transition={{ duration: 3 + (i % 4), repeat: Infinity, delay: i * 0.3 }}
                 />
               ))}
             </div>
 
-            {/* Main content */}
-            <div className="relative z-10 flex flex-col items-center gap-6 px-8 max-w-sm w-full text-center">
-              {/* Header */}
+            {/* Main Content */}
+            <div className="relative z-10 flex flex-col items-center gap-5 px-8 max-w-sm w-full text-center">
               <div className="flex items-center gap-2">
-                <Shield size={20} className="text-indigo-400" />
-                <span className="text-indigo-300 font-semibold text-sm tracking-widest uppercase">Focus Mode Active</span>
+                <Shield className="w-5 h-5 text-primary" />
+                <span className="text-primary font-semibold text-sm tracking-widest uppercase">Focus Active</span>
               </div>
 
-              {/* Timer */}
-              <div className="relative">
-                <div className="text-8xl font-black text-white tracking-tighter font-mono tabular-nums drop-shadow-2xl">
-                  {formatTime(timeLeft)}
+              {/* Timer Circle */}
+              <div className="relative w-52 h-52">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="6" />
+                  <motion.circle
+                    cx="100" cy="100" r="90" fill="none"
+                    stroke="hsl(210, 90%, 60%)"
+                    strokeWidth="6" strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    transition={{ duration: 0.5 }}
+                    style={{ filter: 'drop-shadow(0 0 8px hsl(210, 90%, 60% / 0.5))' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                  <span className="text-xs opacity-60 mb-1">Remaining</span>
+                  <span className="text-5xl font-bold tracking-tighter tabular-nums">{formatTime(timeLeft)}</span>
+                  <span className="text-xs opacity-40 mt-1">{settings.duration}m session</span>
                 </div>
-                <div className="text-indigo-300 text-sm mt-1">{settings.duration} min session</div>
               </div>
 
-              {/* Progress bar */}
-              <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.5 }}
-                />
-              </div>
-
-              {/* Mascot */}
-              <motion.div
-                animate={
-                  mascotMood === "celebrating"
-                    ? { rotate: [0, -10, 10, -10, 10, 0], scale: [1, 1.1, 1] }
-                    : mascotMood === "warning"
-                    ? { x: [-5, 5, -5, 5, 0], scale: [1, 1.05, 1] }
-                    : { y: [0, -6, 0] }
-                }
-                transition={{ duration: mascotMood === "warning" ? 0.4 : 2.5, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <AkoMascot mood={mascotMood} size={100} />
-              </motion.div>
-
-              {/* Mascot speech bubble */}
+              {/* Mascot Message */}
               <AnimatePresence mode="wait">
                 <motion.div
                   key={mascotMessage}
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                  className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-white text-sm font-medium shadow-lg max-w-xs"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-5 py-3 text-white text-sm font-medium max-w-xs"
                 >
                   {mascotMessage}
                 </motion.div>
               </AnimatePresence>
 
-              {/* Warning banner */}
+              {/* Warning */}
               <AnimatePresence>
                 {showWarning && (
                   <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.9 }}
                     className="flex items-center gap-2 bg-red-500/20 border border-red-400/40 text-red-300 rounded-2xl px-5 py-3 text-sm font-medium"
                   >
-                    <AlertTriangle size={16} />
+                    <AlertTriangle className="w-4 h-4" />
                     <span>Hey! Stay focused! Come back! 😤</span>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Tasks + Activities */}
-              <div className="w-full grid grid-cols-2 gap-3">
-                {/* Active task */}
-                {settings.taskRemindersEnabled && activeTasks.length > 0 && (
-                  <div className="col-span-2 bg-white/8 border border-white/10 rounded-2xl p-4 text-left">
-                    <p className="text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-2">Current Task</p>
-                    <p className="text-white font-medium truncate">
-                      {activeTasks[currentTaskIndex % activeTasks.length]?.title}
-                    </p>
-                    {activeTasks.length > 1 && (
-                      <p className="text-slate-500 text-xs mt-1">+{activeTasks.length - 1} more tasks pending</p>
-                    )}
-                  </div>
-                )}
+              {/* Current Task */}
+              {settings.taskRemindersEnabled && activeTasks.length > 0 && (
+                <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-left">
+                  <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-2">Current Task</p>
+                  <p className="text-white font-medium truncate">{activeTasks[currentTaskIndex % activeTasks.length]?.title}</p>
+                  {activeTasks.length > 1 && <p className="text-white/30 text-xs mt-1">+{activeTasks.length - 1} more</p>}
+                </div>
+              )}
 
-                {/* Suggested activities */}
-                {settings.suggestedActivities.length > 0 && (
-                  <div className="col-span-2 bg-white/8 border border-white/10 rounded-2xl p-4 text-left">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Zap size={12} className="text-yellow-400" />
-                      <p className="text-xs text-yellow-400 font-semibold uppercase tracking-wider">On break, try:</p>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      {settings.suggestedActivities.slice(0, 3).map((act, i) => (
-                        <div key={i} className="flex items-center gap-2 text-slate-300 text-sm">
-                          <span className="text-yellow-400">{getActivityIcon(act)}</span>
-                          <span>{act}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              {/* Progress bar */}
+              <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-lavender"
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.5 }}
+                />
               </div>
 
-              {/* Blocked apps note */}
-              <p className="text-slate-500 text-xs">
-                Resist: {settings.blockedApps.slice(0, 3).join(", ")}
-                {settings.blockedApps.length > 3 ? `...` : ""}
+              {/* Blocked apps */}
+              <p className="text-white/30 text-xs">
+                Blocking: {settings.blockedApps.slice(0, 3).join(", ")}{settings.blockedApps.length > 3 ? "..." : ""}
               </p>
 
               {/* Stop button */}
@@ -642,14 +427,14 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setShowStopConfirm(true)}
-                className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors text-sm py-2"
+                className="flex items-center gap-2 text-white/30 hover:text-red-400 transition-colors text-sm py-2"
               >
-                <ShieldOff size={15} />
+                <Unlock className="w-4 h-4" />
                 End session early
               </motion.button>
             </div>
 
-            {/* ── Stop confirmation ── */}
+            {/* Stop Confirm */}
             <AnimatePresence>
               {showStopConfirm && (
                 <motion.div
@@ -659,30 +444,27 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
                   className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-10 p-6"
                 >
                   <motion.div
-                    initial={{ scale: 0.85, y: 20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    exit={{ scale: 0.85, y: 20 }}
-                    className="bg-slate-900 border border-white/20 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl"
+                    initial={{ scale: 0.85 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.85 }}
+                    className="bg-card border border-border rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl"
                   >
-                    <AkoMascot mood="warning" size={72} />
-                    <h3 className="text-white text-xl font-bold mt-4">Give up already? 😤</h3>
-                    <p className="text-slate-400 text-sm mt-2 mb-6">
-                      You still have {formatTime(timeLeft)} left! Don't break your streak — Ako believes in you!
+                    <h3 className="text-foreground text-xl font-bold mt-2">Give up already? 😤</h3>
+                    <p className="text-muted-foreground text-sm mt-2 mb-6">
+                      You still have {formatTime(timeLeft)} left! Don't break your streak!
                     </p>
                     <div className="flex gap-3">
                       <motion.button
-                        whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => setShowStopConfirm(false)}
-                        className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-2xl py-3 shadow-lg"
+                        className="flex-1 bg-primary text-primary-foreground font-semibold rounded-2xl py-3"
                       >
                         Keep going! 💪
                       </motion.button>
                       <motion.button
-                        whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={stopBlocking}
-                        className="bg-white/10 text-slate-300 hover:bg-red-500/20 hover:text-red-300 rounded-2xl px-4 transition-colors border border-white/10"
+                        className="bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-2xl px-4 transition-colors border border-destructive/20"
                       >
                         Stop
                       </motion.button>
@@ -695,31 +477,27 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
         )}
       </AnimatePresence>
 
-      {/* ── SETTINGS MODAL ────────────────────────────────────── */}
+      {/* Settings Modal */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[600] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           >
             <motion.div
-              initial={{ y: 60, opacity: 0 }}
+              initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 60, opacity: 0 }}
-              className="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
+              exit={{ y: 40, opacity: 0 }}
+              className="w-full max-w-md bg-card border border-border rounded-3xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
             >
-              {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-white text-lg font-bold">Focus Settings</h3>
-                  <p className="text-slate-400 text-sm">Customize your blocking session</p>
+                  <h3 className="text-foreground text-lg font-bold">Focus Settings</h3>
+                  <p className="text-muted-foreground text-sm">Customize your session</p>
                 </div>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-xl"
-                >
+                <button onClick={() => setShowSettings(false)} className="text-muted-foreground hover:text-foreground p-2 hover:bg-secondary rounded-xl transition-colors">
                   <X size={18} />
                 </button>
               </div>
@@ -727,51 +505,36 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
               <div className="flex flex-col gap-6">
                 {/* Duration */}
                 <section>
-                  <label className="text-xs text-indigo-400 font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                    <Clock size={12} />
-                    Session Duration
+                  <label className="text-xs text-primary font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <Clock size={12} /> Session Duration
                   </label>
                   <div className="grid grid-cols-5 gap-2">
                     {[15, 25, 30, 45, 60].map((d) => (
-                      <motion.button
+                      <button
                         key={d}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
                         onClick={() => saveSettings({ ...settings, duration: d })}
                         className={`py-2.5 rounded-xl text-sm font-semibold transition-all ${
                           settings.duration === d
-                            ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30"
-                            : "bg-white/8 text-slate-300 hover:bg-white/15 border border-white/10"
+                            ? "bg-primary text-primary-foreground shadow-lg"
+                            : "bg-secondary text-muted-foreground hover:bg-secondary/80 border border-border"
                         }`}
                       >
                         {d}m
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
                 </section>
 
                 {/* Blocked apps */}
                 <section>
-                  <label className="text-xs text-red-400 font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                    <ShieldOff size={12} />
-                    Apps to Avoid
+                  <label className="text-xs text-destructive font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <ShieldOff size={12} /> Apps to Avoid
                   </label>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {settings.blockedApps.map((app) => (
-                      <span
-                        key={app}
-                        className="flex items-center gap-1.5 text-xs bg-red-500/15 text-red-300 border border-red-500/25 rounded-full px-3 py-1"
-                      >
+                      <span key={app} className="flex items-center gap-1.5 text-xs bg-destructive/10 text-destructive border border-destructive/20 rounded-full px-3 py-1">
                         🚫 {app}
-                        <button
-                          onClick={() =>
-                            saveSettings({
-                              ...settings,
-                              blockedApps: settings.blockedApps.filter((a) => a !== app),
-                            })
-                          }
-                          className="text-red-400 hover:text-white ml-0.5"
-                        >
+                        <button onClick={() => saveSettings({ ...settings, blockedApps: settings.blockedApps.filter((a) => a !== app) })} className="hover:text-foreground ml-0.5">
                           <X size={10} />
                         </button>
                       </span>
@@ -781,54 +544,31 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
                     <input
                       value={newApp}
                       onChange={(e) => setNewApp(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newApp.trim()) {
-                          saveSettings({ ...settings, blockedApps: [...settings.blockedApps, newApp.trim()] });
-                          setNewApp("");
-                        }
-                      }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && newApp.trim()) { saveSettings({ ...settings, blockedApps: [...settings.blockedApps, newApp.trim()] }); setNewApp(""); } }}
                       placeholder="Add app (press Enter)"
-                      className="flex-1 bg-white/8 border border-white/15 text-white placeholder-slate-500 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500/50"
+                      className="flex-1 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                     <button
-                      onClick={() => {
-                        if (newApp.trim()) {
-                          saveSettings({ ...settings, blockedApps: [...settings.blockedApps, newApp.trim()] });
-                          setNewApp("");
-                        }
-                      }}
-                      className="bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-500/30 rounded-xl px-3 transition-colors"
+                      onClick={() => { if (newApp.trim()) { saveSettings({ ...settings, blockedApps: [...settings.blockedApps, newApp.trim()] }); setNewApp(""); } }}
+                      className="bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 rounded-xl px-3 transition-colors"
                     >
                       <Plus size={16} />
                     </button>
                   </div>
                 </section>
 
-                {/* Suggested activities */}
+                {/* Activities */}
                 <section>
-                  <label className="text-xs text-yellow-400 font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                    <Zap size={12} />
-                    Break Activities
+                  <label className="text-xs text-warm font-semibold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <Zap size={12} /> Break Activities
                   </label>
                   <div className="flex flex-col gap-1.5 mb-3">
                     {settings.suggestedActivities.map((act, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-3 py-2"
-                      >
-                        <span className="text-sm text-slate-300 flex items-center gap-2">
-                          <span className="text-yellow-400">{getActivityIcon(act)}</span>
-                          {act}
+                      <div key={i} className="flex items-center justify-between bg-secondary/50 border border-border rounded-xl px-3 py-2">
+                        <span className="text-sm text-foreground flex items-center gap-2">
+                          <Star size={12} className="text-warm" />{act}
                         </span>
-                        <button
-                          onClick={() =>
-                            saveSettings({
-                              ...settings,
-                              suggestedActivities: settings.suggestedActivities.filter((_, idx) => idx !== i),
-                            })
-                          }
-                          className="text-slate-500 hover:text-red-400 transition-colors"
-                        >
+                        <button onClick={() => saveSettings({ ...settings, suggestedActivities: settings.suggestedActivities.filter((_, idx) => idx !== i) })} className="text-muted-foreground hover:text-destructive transition-colors">
                           <X size={12} />
                         </button>
                       </div>
@@ -838,29 +578,13 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
                     <input
                       value={newActivity}
                       onChange={(e) => setNewActivity(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newActivity.trim()) {
-                          saveSettings({
-                            ...settings,
-                            suggestedActivities: [...settings.suggestedActivities, newActivity.trim()],
-                          });
-                          setNewActivity("");
-                        }
-                      }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && newActivity.trim()) { saveSettings({ ...settings, suggestedActivities: [...settings.suggestedActivities, newActivity.trim()] }); setNewActivity(""); } }}
                       placeholder="Add activity (press Enter)"
-                      className="flex-1 bg-white/8 border border-white/15 text-white placeholder-slate-500 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-yellow-500/50"
+                      className="flex-1 bg-secondary border border-border text-foreground placeholder-muted-foreground rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                     <button
-                      onClick={() => {
-                        if (newActivity.trim()) {
-                          saveSettings({
-                            ...settings,
-                            suggestedActivities: [...settings.suggestedActivities, newActivity.trim()],
-                          });
-                          setNewActivity("");
-                        }
-                      }}
-                      className="bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 border border-yellow-500/30 rounded-xl px-3 transition-colors"
+                      onClick={() => { if (newActivity.trim()) { saveSettings({ ...settings, suggestedActivities: [...settings.suggestedActivities, newActivity.trim()] }); setNewActivity(""); } }}
+                      className="bg-warm/10 text-warm hover:bg-warm/20 border border-warm/20 rounded-xl px-3 transition-colors"
                     >
                       <Plus size={16} />
                     </button>
@@ -870,104 +594,53 @@ export default function AppBlocker({ tasks = [] }: AppBlockerProps) {
                 {/* Toggles */}
                 <section className="flex flex-col gap-3">
                   {[
-                    {
-                      label: "Task Reminders",
-                      desc: "Show active tasks during focus",
-                      icon: <CheckCircle size={15} />,
-                      value: settings.taskRemindersEnabled,
-                      key: "taskRemindersEnabled" as keyof AppBlockerSettings,
-                      color: "indigo",
-                    },
-                    {
-                      label: "Alarm Sound",
-                      desc: "Play alert when you leave the app",
-                      icon: settings.alarmEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />,
-                      value: settings.alarmEnabled,
-                      key: "alarmEnabled" as keyof AppBlockerSettings,
-                      color: "purple",
-                    },
-                  ].map(({ label, desc, icon, value, key, color }) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className={`text-${color}-400`}>{icon}</span>
-                        <div>
-                          <p className="text-white text-sm font-medium">{label}</p>
-                          <p className="text-slate-400 text-xs">{desc}</p>
-                        </div>
+                    { label: "Task Reminders", desc: "Show active tasks during focus", value: settings.taskRemindersEnabled, key: "taskRemindersEnabled" as const },
+                    { label: "Alarm Sound", desc: "Alert when you leave the app", value: settings.alarmEnabled, key: "alarmEnabled" as const },
+                  ].map(({ label, desc, value, key }) => (
+                    <div key={key} className="flex items-center justify-between bg-secondary/50 border border-border rounded-2xl px-4 py-3">
+                      <div>
+                        <p className="text-foreground text-sm font-medium">{label}</p>
+                        <p className="text-muted-foreground text-xs">{desc}</p>
                       </div>
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
+                      <button
                         onClick={() => saveSettings({ ...settings, [key]: !value })}
-                        className={`relative w-11 h-6 rounded-full transition-colors ${
-                          value ? `bg-${color}-500` : "bg-white/20"
-                        }`}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${value ? "bg-primary" : "bg-muted"}`}
                       >
-                        <motion.div
-                          animate={{ x: value ? 20 : 2 }}
-                          className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-md"
-                        />
-                      </motion.button>
+                        <motion.div animate={{ x: value ? 20 : 2 }} className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-md" />
+                      </button>
                     </div>
                   ))}
                 </section>
 
-                {/* Save button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setShowSettings(false)}
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-2xl py-3 shadow-lg shadow-indigo-500/20"
-                >
+                <button onClick={() => setShowSettings(false)} className="w-full bg-primary text-primary-foreground font-semibold rounded-2xl py-3 shadow-lg">
                   Save Settings ✓
-                </motion.button>
+                </button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Session complete celebration ─────────────────────── */}
+      {/* Session Complete */}
       <AnimatePresence>
         {sessionComplete && !isBlocking && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="fixed inset-0 z-[700] flex items-center justify-center bg-black/50 backdrop-blur-sm"
           >
             <motion.div
-              className="bg-gradient-to-br from-slate-900 to-indigo-950 border border-indigo-500/30 rounded-3xl p-10 text-center shadow-2xl max-w-sm mx-4"
+              className="bg-card border border-border rounded-3xl p-10 text-center shadow-2xl max-w-sm mx-4"
               animate={{ y: [0, -8, 0] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             >
-              {[...Array(12)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-2 h-2 rounded-full"
-                  style={{
-                    background: ["#818cf8", "#f9a8d4", "#fbbf24", "#34d399"][i % 4],
-                    left: `${15 + (i * 7) % 70}%`,
-                    top: `${10 + (i * 11) % 80}%`,
-                  }}
-                  animate={{ y: [-20, -60], opacity: [1, 0], scale: [1, 0.5] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15 }}
-                />
-              ))}
-              <AkoMascot mood="celebrating" size={100} />
-              <h2 className="text-3xl font-black text-white mt-4">Session Complete!</h2>
-              <p className="text-indigo-300 mt-2">You stayed focused for {settings.duration} minutes! 🎉</p>
+              <h2 className="text-3xl font-black text-foreground mt-4">Session Complete! 🎉</h2>
+              <p className="text-primary mt-2">You stayed focused for {settings.duration} minutes!</p>
               <div className="flex items-center justify-center gap-1 mt-4">
                 {[...Array(5)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                  >
-                    <Star size={20} className="text-yellow-400 fill-yellow-400" />
+                  <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: i * 0.1 }}>
+                    <Star className="w-5 h-5 text-warm fill-warm" />
                   </motion.div>
                 ))}
               </div>
