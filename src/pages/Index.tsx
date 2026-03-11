@@ -159,6 +159,10 @@ const Index = () => {
         return <AppBlocker tasks={tasks.filter(t => !t.completed).map(t => ({ id: t.id, title: t.title, completed: t.completed, priority: t.priority }))} />;
       case 'quiz':
         return <SubjectQuiz />;
+      case 'summarizer':
+        return <ResearchSummarizer />;
+      case 'grammar':
+        return <GrammarChecker />;
       case 'kanban':
         return <KanbanBoard />;
       case 'calendar':
