@@ -150,10 +150,7 @@ const Index = () => {
   }, []);
 
   const handleNavigate = useCallback((view: string) => {
-    const validViews: ViewType[] = ['home', 'tasks', 'kanban', 'calendar', 'goals', 'dashboard', 'focus', 'quiz'];
-    if (validViews.includes(view as ViewType)) {
-      setActiveView(view as ViewType);
-    }
+    const validViews: ViewType[] = ['home', 'tasks', 'kanban', 'calendar', 'goals', 'dashboard', 'focus', 'quiz', 'summarizer', 'grammar'];
   }, []);
 
   const renderActiveView = () => {
