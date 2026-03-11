@@ -17,11 +17,13 @@ import QuickNotes from '@/components/QuickNotes';
 import TimeManagementMethods from '@/components/TimeManagementMethods';
 import AppBlocker from '@/components/AppBlocker';
 import SubjectQuiz from '@/components/SubjectQuiz';
+import ResearchSummarizer from '@/components/ResearchSummarizer';
+import GrammarChecker from '@/components/GrammarChecker';
 import { useTasksStore } from '@/hooks/useTasksStore';
 import { useAuth } from '@/hooks/useAuth';
 import {
   LayoutDashboard, Target, LayoutGrid, Calendar, BarChart3,
-  Home, Sparkles, Shield, BookOpen,
+  Home, Sparkles, Shield, BookOpen, BookMarked, PenLine,
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
 import AkoChat from '@/components/AkoChat';
