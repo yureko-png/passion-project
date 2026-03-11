@@ -17,11 +17,13 @@ import QuickNotes from '@/components/QuickNotes';
 import TimeManagementMethods from '@/components/TimeManagementMethods';
 import AppBlocker from '@/components/AppBlocker';
 import SubjectQuiz from '@/components/SubjectQuiz';
+import ResearchSummarizer from '@/components/ResearchSummarizer';
+import GrammarChecker from '@/components/GrammarChecker';
 import { useTasksStore } from '@/hooks/useTasksStore';
 import { useAuth } from '@/hooks/useAuth';
 import {
   LayoutDashboard, Target, LayoutGrid, Calendar, BarChart3,
-  Home, Sparkles, Shield, BookOpen,
+  Home, Sparkles, Shield, BookOpen, BookMarked, PenLine,
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
 import AkoChat from '@/components/AkoChat';
@@ -61,13 +63,15 @@ const mascotMessages: Record<MascotMood, string[]> = {
   ],
 };
 
-type ViewType = 'home' | 'tasks' | 'kanban' | 'calendar' | 'goals' | 'dashboard' | 'focus' | 'quiz';
+type ViewType = 'home' | 'tasks' | 'kanban' | 'calendar' | 'goals' | 'dashboard' | 'focus' | 'quiz' | 'summarizer' | 'grammar';
 
 const viewTabs = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'tasks', label: 'Tasks', icon: LayoutDashboard },
   { id: 'focus', label: 'Focus', icon: Shield },
   { id: 'quiz', label: 'Quiz', icon: BookOpen },
+  { id: 'summarizer', label: 'Summarizer', icon: BookMarked },
+  { id: 'grammar', label: 'Grammar', icon: PenLine },
   { id: 'kanban', label: 'Board', icon: LayoutGrid },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
   { id: 'goals', label: 'Goals', icon: Target },
@@ -146,10 +150,7 @@ const Index = () => {
   }, []);
 
   const handleNavigate = useCallback((view: string) => {
-    const validViews: ViewType[] = ['home', 'tasks', 'kanban', 'calendar', 'goals', 'dashboard', 'focus', 'quiz'];
-    if (validViews.includes(view as ViewType)) {
-      setActiveView(view as ViewType);
-    }
+    const validViews: ViewType[] = ['home', 'tasks', 'kanban', 'calendar', 'goals', 'dashboard', 'focus', 'quiz', 'summarizer', 'grammar'];
   }, []);
 
   const renderActiveView = () => {
@@ -158,6 +159,10 @@ const Index = () => {
         return <AppBlocker tasks={tasks.filter(t => !t.completed).map(t => ({ id: t.id, title: t.title, completed: t.completed, priority: t.priority }))} />;
       case 'quiz':
         return <SubjectQuiz />;
+      case 'summarizer':
+        return <ResearchSummarizer />;
+      case 'grammar':
+        return <GrammarChecker />;
       case 'kanban':
         return <KanbanBoard />;
       case 'calendar':
