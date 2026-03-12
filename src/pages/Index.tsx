@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
 import AkoChat from '@/components/AkoChat';
+import SpotifyPlayer from '@/components/SpotifyPlayer';
 import bgShrine from '@/assets/bg-anime-shrine.jpg';
 import bgField from '@/assets/bg-anime-field.jpeg';
 
