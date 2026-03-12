@@ -16,6 +16,7 @@ import Mascot from './Mascot';
 import AmbientSoundPanel from './AmbientSoundPanel';
 import DailyQuestCard from './DailyQuestCard';
 import MusicPlayer from './MusicPlayer';
+import SpotifyPlayer from './SpotifyPlayer';
 import type { MascotMood } from './Mascot';
 
 interface ModomoroModeProps {
