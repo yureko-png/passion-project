@@ -372,6 +372,15 @@ const Index = () => {
               <QuickNotes />
             </motion.div>
 
+            {/* Spotify Mini Player */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.47 }}
+            >
+              <SpotifyPlayer variant="compact" />
+            </motion.div>
+
             {/* Time Management (only show on home) */}
             {activeView === 'home' && (
               <motion.div
