@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import ModomoroMode from '@/components/ModomoroMode';
 import AkoChat from '@/components/AkoChat';
+import SpotifyPlayer from '@/components/SpotifyPlayer';
 import bgShrine from '@/assets/bg-anime-shrine.jpg';
 import bgField from '@/assets/bg-anime-field.jpeg';
 
@@ -369,6 +370,15 @@ const Index = () => {
               transition={{ duration: 0.6, delay: 0.45 }}
             >
               <QuickNotes />
+            </motion.div>
+
+            {/* Spotify Mini Player */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.47 }}
+            >
+              <SpotifyPlayer variant="compact" />
             </motion.div>
 
             {/* Time Management (only show on home) */}
